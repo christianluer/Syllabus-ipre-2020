@@ -3,6 +3,29 @@ from gurobipy import *
 import numpy as np
 
 
+#Conjuntos
+
+contador_de_columnas = 1
+
+C = [k for k in range(1, contador_de_columnas + 1)] #numero de columnas
+
+#Otros conjuntos 
+
+T = [k for k in range(1, 13)] #2 semanas sin contar los domingos
+# Buen punto inicial para revisar factibilidad
+# Surge duda, ¿es posible agendar pacientes en tan poco tiempo?
+# Quizás sea mejor más tiempo pero menos módulos y menos pacientes
+
+P = [k for k in range(1, 4)] #3 protocolos  
+# Buena simplificación  
+
+M = [k for k in range(1, 53)] #52 módulos incluídas horas extra
+# 13 horas en total
+
+S = {1: [0,1,2,3,4,5,6,7,8], 2: [0,1,2,3,4,5], 3: [0,1,2,3,4,5,6,7]} 
+#duración de las sesiones por protocolo p sin contar los días de descanso
+
+
 #Parámetros utilizados en el modelo, modificables
 
 CD_p = [16800, 89600, 56000] #Costo derivación por protocolo
@@ -215,6 +238,8 @@ for p in P:
 
 
 # Variable de estado U-p,t,s,m
+
+u_pstm_dada = {}
 
 for p in P:
 
