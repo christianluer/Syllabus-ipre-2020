@@ -1,1 +1,11 @@
-## aca iria el codigo gurobi, suerte con todo!!!
+from gurobipy import *
+
+import numpy as np
+
+
+
+
+
+#Maestro
+
+maestro = Model("Asignacion")
