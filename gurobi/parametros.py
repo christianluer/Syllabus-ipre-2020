@@ -13,8 +13,6 @@ C = [k for k in range(1, contador_de_columnas + 1)] #numero de columnas
 
 T = [k for k in range(1, 13)] #2 semanas sin contar los domingos
 # Buen punto inicial para revisar factibilidad
-# Surge duda, ¿es posible agendar pacientes en tan poco tiempo?
-# Quizás sea mejor más tiempo pero menos módulos y menos pacientes
 
 P = [k for k in range(1, 4)] #3 protocolos  
 # Buena simplificación  
@@ -62,6 +60,7 @@ lambdas = [1.6, 1.1, 2.1] #tasa de llegada dist. poisson
 # Variables de estado (parámetros obtenidos del pricing)
 
 # Variable de estado W-p,s,t
+# Cantidad de pacientes con protocolo p que tienen agendada su sesión s en el día t
 
 w_pst_dada = {}
 
@@ -156,6 +155,7 @@ w_pst_dada[3,1,12]=2
 
 
 # Variable de estado R-p
+# Cantidad de pacientes con protocolo p que llegaron en el último periodo
 
 r_p_dada = {}
 
@@ -175,6 +175,7 @@ r_p_dada[3] = 4
 # Variables de estado acción (parámetros obtenidos del pricing)
 
 # Variable de estado Z-p
+# Cantidad de protocolos p derivados a sistema privado
 
 z_p_dada = {}
 
@@ -192,6 +193,8 @@ z_p_dada[3] = 4
 
 
 # Variable de estado X-p,t
+# Cantidad de pacientes con protocolo p con sesión agendada en día t
+# Permite realizar calendarización interdía
 
 x_pt_dada = {}
 
@@ -223,6 +226,8 @@ x_pt_dada[3,12] = 2
 
 
 # Variable de estado Y-p,t,s,m
+# Cantidad de pacientes protocolo p, sesión s, día t, módulo m
+# Variable a cargo de caldarización intradía
 
 y_pstm_dada = {}
 
@@ -238,6 +243,8 @@ for p in P:
 
 
 # Variable de estado U-p,t,s,m
+# Cantidad de pacientes con protocolo p que en el día t terminan 
+# su sesión s en el módulo m
 
 u_pstm_dada = {}
 

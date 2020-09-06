@@ -26,11 +26,13 @@ from gurobipy import *
 
 #Conjuntos
 
+# Días
+
 T = [str(k) for k in range(1,7)] #6 dias
 
-P = [str(k) for k in range(1,4)] # 3 protocolos
+# Protocolos
 
-M = [str(k) for k in range(1,41)] # 40 bloques
+P = [str(k) for k in range(1,4)] # 3 protocolos
 
 Largo_P = [9,6,8] #Duracion de cada protocolo
 
@@ -40,8 +42,9 @@ for i in P:
 
   S.update({i:[str(k) for k in range(1,Largo_P[int(i)-1] + 1)]})
 
+# Módulos
 
-
+M = [str(k) for k in range(1,41)] # 40 bloques
 
 
 #Parametros
