@@ -1,18 +1,24 @@
 #!/usr/bin/env python
 # coding: utf-8
-
+from collections import defaultdict
 # In[14]:
 
+semanas_de_simulacion = 4
 
-calendario = {}
-semana={"lunes":"0","martes":"1","miercoles":"2","jueves":"3","viernes":"4","sabado":"5","domingo":"6"}
-modulo={}
-for i in range (1,41):
-    modulo[i]=i
-semana={"lunes":modulo,"martes":modulo,"miercoles":modulo,"jueves":modulo,"viernes":modulo,"sabado":modulo,"domingo":modulo}
-for i in range (0,2):
-    calendario[i]=semana
-print (calendario)
+dias = ["lunes", "martes", "miercoles", "jueves","viernes", "sabado", "domingo"]
+calendario = defaultdict(defaultdict)
+semana = defaultdict(defaultdict)
+modulo = defaultdict(int)
+for i in range(1, 41):
+    modulo[i] = i
+for i in dias:
+    semana[i] = modulo
+
+
+for i in range(semanas_de_simulacion):
+    calendario[i] = semana
+
+
 
 
 # In[ ]:

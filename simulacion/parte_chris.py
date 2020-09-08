@@ -1,7 +1,7 @@
 import numpy as np
 import random
 from collections import deque
-
+from Calendario import calendario
 
 tasa_llegada_dia = 3
 tipos_de_cancer = [1, 2, 3, 4] #pueden ser nombres tambien
@@ -36,8 +36,16 @@ def llegada_pacientes_semana(pacientes_nuevos):
             tipo = random.choice(tipos_de_cancer)
             pacientes_nuevos.pacientes.append(Paciente(tipo))
 
+# tipo protocolo sera de la forma: (1, 2, 4, 5, "4" ),es decir,
+# lunes, martes, jueves y viernes tratamiento, y 4 semanas de duracion del tratamiento
+protocolo_1 = []
+protocolo_2 = []
+protocolo_3 = []
 
-
+def agendar(pacientes_en_espera, pacientes_agendados, calendario):
+    # lo que debo hacer aca es tomar pacientes en espera, agendarlos a un modulo,
+    # y pasarlo a pacientes agendados
+    pass
 
 if __name__ == "__main__":
     espera = Pacientes_nuevos()
