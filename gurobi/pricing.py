@@ -3,7 +3,7 @@ import numpy as np
 from openpyxl import load_workbook
 
 from gurobipy import *
-
+#prueba
 
 
 # datos = load_workbook(filename="libro.xlsx",data_only=True)
