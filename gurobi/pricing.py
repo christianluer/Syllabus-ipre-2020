@@ -186,10 +186,13 @@ for p in P:
 
 
 # Funcion costos
+# En informe, descrita como (9)
 
 k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * (m_index + 1) for p in P for s in S[p] for t in T for m_index, m in enumerate(M))
 
 
+# Función objetivo
+# En informe, (15)
 
 model.setObjective( (1 - γ) * β + quicksum(ω[p,s,t] * W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(ρ[p] * R[p] for p in P) - k_as, GRB.MAXIMIZE)
 
