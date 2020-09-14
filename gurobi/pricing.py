@@ -3,7 +3,6 @@ import numpy as np
 from openpyxl import load_workbook
 
 from gurobipy import *
-#prueba
 
 
 # datos = load_workbook(filename="libro.xlsx",data_only=True)
@@ -36,11 +35,12 @@ P = [str(k) for k in range(1,4)] # 3 protocolos
 
 Largo_P = [9,6,8] #Duracion de cada protocolo
 
+#Sesiones
 S = {} #Sesiones del protocolo p
 
 for i in P:
 
-  S.update({i:[str(k) for k in range(1,Largo_P[int(i)-1] + 1)]})
+  S.update({i:[str(k) for k in range(1,Largo_P[int(i)-1] + 1)]}) #***
 
 # Módulos
 
@@ -59,7 +59,7 @@ NS = 20 #Número sillas
 
 Costos = [0.03,0.02,0.01] #Costos por protocolo
 
-CD = dict(zip(P,Costos))
+CD = dict(zip(P,Costos)) #asocia los costos cada protocolo con su costo
 
 Modulos = [5 for k in range(1,24)] #Duraciones de cada sesion
 
@@ -75,7 +75,7 @@ for i in P:
 
 
 
-lambdas = [5,4,3] # promedio de llegada protocolo p
+lambdas = [5,4,3] # promedio de llegada protocolo p ??
 
 q = dict(zip(P,np.random.poisson(lambdas)))
 
@@ -181,7 +181,7 @@ for p in P:
 
 #Funcion costos
 
-k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * (m_index + 1) for p in P for s in S[p] for t in T for m_index, m in enumerate(M))
+k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * (m_index + 1) for p in P for s in S[p] for t in T for m_index, m in enumerate(M)) # que es el m index?
 
 
 
@@ -190,7 +190,18 @@ model.setObjective( (1 - γ) * β + quicksum(ω[p,s,t] * W[p,s,t] for p in P for
 
 
 #Restricciones
+#restricción 1: respetar cantidad de modulos de atencion
+R2 = {}
 
+for t_index, t in enumerate(T):
+
+    R2[t] = model.addConstr(quicksum(x[p,T[t_index-K_ps[p][int(s)-1]+1]] * M_sp[p][s]\
+
+     for p in P for s in S[p] if t_index+1 >= K_ps[p][int(s)-1]) + quicksum(w[p,s,t] * M_sp[p][s]\
+
+     for p in P for s in S[p] if t_index+1 >= K_ps[p][int(s)-1]) <= 40, name="capacidad bloques[%s]" %t)
+
+#restricción 2: definifinición de y
 R1 = {}
 
 for p in P:
@@ -206,32 +217,22 @@ for p in P:
                 , name="definicion y [%s, %s, %s]"%(p,s,t))
 
 
-
-R2 = {}
-
-for t_index, t in enumerate(T):
-
-    R2[t] = model.addConstr(quicksum(x[p,T[t_index-K_ps[p][int(s)-1]+1]] * M_sp[p][s]\
-
-     for p in P for s in S[p] if t_index+1 >= K_ps[p][int(s)-1]) + quicksum(w[p,s,t] * M_sp[p][s]\
-
-     for p in P for s in S[p] if t_index+1 >= K_ps[p][int(s)-1]) <= 40, name="capacidad bloques[%s]" %t)
-
-
+#restricción 3 conservacion de flujo de pacientes
+model.addConstrs((r[p] == z[p] + quicksum(x[p,t] for t in T) for p in P), name="conservacion de flujo")
 
 
 
 model.addConstrs((r[p] == q[p] for p in P), name="Realizacion de las llegadas")
 
-model.addConstrs((r[p] == z[p] + quicksum(x[p,t] for t in T) for p in P), name="conservacion de flujo")
 
+#restriccion 5 enfermeras
 model.addConstrs((quicksum(y[p,s,t,m] for p in P for s in S[p]) + quicksum(u[p,s,t,m] for p in P for s in S[p])\
 
  <= NE for t in T for m in M), name="Capacidad enfermeras")
 
 
 
-
+#restriccion 4
 
 R3 = {}
 
@@ -248,17 +249,13 @@ for p in P:
                     R3[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m_index - M_sp[p][s] - 1]], name="definicion u [%s, %s, %s, %s]"%(p,s,t,m))
 
 
-
+#restriccion 5 capacidad sillas
 model.addConstrs(( quicksum(y[p,s,t,m] + quicksum(y[p,s,t,M[m_index]] for m_index in range(max(1, m_index - M_sp[p][s])))\
 
  for p in P for s in S[p]) <= NS for t in T for m_index, m in enumerate(M) ), name="capacidad sillas")
 
 
-
-
-
-
-
+#"definicion ω"
 R4 = {}
 
 for p in P:
@@ -272,7 +269,7 @@ for p in P:
                 R4[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t_index]] + x[p,T[t_index]]), name="definicion ω")
 
 
-
+#"definicion ρ"
 model.addConstrs((ρ[p] == r[p] for p in P), name="definicion ρ")
 
 
