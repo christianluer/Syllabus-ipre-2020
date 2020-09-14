@@ -208,44 +208,35 @@ for t_index, t in enumerate(T):
 
      for p in P for s in S[p] if t_index+1 >= K_ps[p][int(s)-1]) + quicksum(w[p,s,t] * M_sp[p][s]\
 
-     for p in P for s in S[p] if t_index+1 >= K_ps[p][int(s)-1]) <= 40, name="capacidad bloques[%s]" %t)
+     for p in P for s in S[p] if t_index+1 >= K_ps[p][int(s)-1]) <= 40, name="Capacidad bloques[%s]" %t)
 
 
 # Restricción 2: definifinición de y
 
 R2 = {}
 
+# Para cada p en P
 for p in P:
-
+    # Para cada sesión s en S(p
     for s in S[p]:
-
+        # Para cada t en T
         for t_index, t in enumerate(T):
-
+            # Condicion para evitar exponente igual a 0
             if t_index+1 >= K_ps[p][int(s)-1]:
 
                 R2[p,s,t] = model.addConstr(quicksum(y[p,s,t,m] for m in M) == x[p,T[t_index-K_ps[p][int(s)-1]+1]] + w[p,s,t]\
 
-                , name="definicion y [%s, %s, %s]"%(p,s,t))
+                , name="Definicion y [%s, %s, %s]"%(p,s,t))
 
 
-#restricción 3 conservacion de flujo de pacientes
-model.addConstrs((r[p] == z[p] + quicksum(x[p,t] for t in T) for p in P), name="conservacion de flujo")
+# Restricción 3: conservacion de flujo de pacientes
+# Definición de r_p
 
+model.addConstrs((r[p] == z[p] + quicksum(x[p,t] for t in T) for p in P), name="Conservacion de flujo")
 
+# Restriccion 4: definicion de u, con y
 
-model.addConstrs((r[p] == q[p] for p in P), name="Realizacion de las llegadas")
-
-
-#restriccion 5 enfermeras
-model.addConstrs((quicksum(y[p,s,t,m] for p in P for s in S[p]) + quicksum(u[p,s,t,m] for p in P for s in S[p])\
-
- <= NE for t in T for m in M), name="Capacidad enfermeras")
-
-
-
-#restriccion 4 definicion de u
-
-R3 = {}
+R4 = {}
 
 for p in P:
 
@@ -257,17 +248,23 @@ for p in P:
 
                 if m_index + M_sp[p][s] <= 40:
 
-                    R3[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m_index - M_sp[p][s] - 1]], name="definicion u [%s, %s, %s, %s]"%(p,s,t,m))
+                    R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m_index - M_sp[p][s] - 1]], name="definicion u [%s, %s, %s, %s]"%(p,s,t,m))
 
+# Restriccion 5: capacidad sillas
 
-#restriccion 5 capacidad sillas
 model.addConstrs(( quicksum(y[p,s,t,m] + quicksum(y[p,s,t,M[m_index]] for m_index in range(max(1, m_index - M_sp[p][s])))\
 
- for p in P for s in S[p]) <= NS for t in T for m_index, m in enumerate(M) ), name="capacidad sillas")
+ for p in P for s in S[p]) <= NS for t in T for m_index, m in enumerate(M) ), name="Capacidad sillas")
 
+# Restriccion 6: enfermeras
 
-#"definicion ω"
-R4 = {}
+model.addConstrs((quicksum(y[p,s,t,m] for p in P for s in S[p]) + quicksum(u[p,s,t,m] for p in P for s in S[p])\
+
+ <= NE for t in T for m in M), name="Capacidad enfermeras")
+
+# Restricción 7: definicion ω
+
+R7 = {}
 
 for p in P:
 
@@ -277,21 +274,22 @@ for p in P:
 
             if t_index + 1 >= K_ps[p][int(s)-1]:
 
-                R4[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t_index]] + x[p,T[t_index]]), name="definicion ω")
+                R7[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t_index]] + x[p,T[t_index]]), name="Definicion ω")
+
+# Restricción 8
+
+model.addConstrs((r[p] == q[p] for p in P), name="Realizacion de las llegadas")
 
 
-#"definicion ρ"
-model.addConstrs((ρ[p] == r[p] for p in P), name="definicion ρ")
+# Definicion ρ
 
+model.addConstrs((ρ[p] == r[p] for p in P), name="Definicion ρ")
 
-
-#Resrticciones que relacionan los ω y los ρ
+#Restricciones que relacionan los ω y los ρ
 
 
 
 model.update()
-
-
 
 model.optimize()
 
