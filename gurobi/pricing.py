@@ -33,7 +33,7 @@ T = [str(k) for k in range(1,7)] #6 dias
 
 P = [str(k) for k in range(1,4)] # 3 protocolos
 
-Largo_P = [9,6,8] #Duracion de cada protocolo
+Largo_P = [9,6,8] #Duracion de cada protocolo en sesiones
 
 #Sesiones
 S = {} #Sesiones del protocolo p
@@ -42,9 +42,10 @@ for i in P:
 
   S.update({i:[str(k) for k in range(1,Largo_P[int(i)-1] + 1)]}) #***
 
+
 # Módulos
 
-M = [str(k) for k in range(1,41)] # 40 bloques
+M = [str(k) for k in range(1,41)] # 40 bloques (10 horas de trabajo, cada modulo consiste en 15 min)
 
 
 #Parametros
@@ -59,11 +60,11 @@ NS = 20 #Número sillas
 
 Costos = [0.03,0.02,0.01] #Costos por protocolo
 
-CD = dict(zip(P,Costos)) #asocia los costos cada protocolo con su costo
+CD = dict(zip(P,Costos)) #asocia los costos cada protocolo con su costo. ***costo de derivacion por protocolo
 
 Modulos = [5 for k in range(1,24)] #Duraciones de cada sesion
 
-M_sp = {} #Modulos de la sesion s del tratamiento p
+M_sp = {} #cantidad de modulos de la sesion s del tratamiento p
 
 for i in P:
 
@@ -73,18 +74,19 @@ for i in P:
 
         M_sp[i].update({j:Modulos.pop(0)})
 
+# todos las sesiones de todos los protocolos están usando 5 modulos cada uno
 
-
-lambdas = [5,4,3] # promedio de llegada protocolo p ??
-
+#variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
+lambdas = [5,4,3] 
 q = dict(zip(P,np.random.poisson(lambdas)))
 
-K_ps = {} #Sesiones del protocolo p
+#k_ps indica la distancia en dias desde s=s hasta s= 1 del protocolo p
+K_ps = {} 
 
 for i in P:
 
   K_ps.update({i:[k for k in range(1,Largo_P[int(i)-1] + 1)]})
-
+#EN ESTE CASO  está considera que todas las sesiones se hacen consecutivas
 
 
 model = Model("Asignacion")
@@ -93,6 +95,7 @@ model = Model("Asignacion")
 
 β = 1
 
+#construccion de Wpst 
 W = {}
 
 for p in P:
@@ -103,13 +106,16 @@ for p in P:
 
             W[p,s,t] = 1
 
+#construcción de Rp
 R = {}
 
 for p in P:
 
     R[p] = 5
 
+#construcción de ωpst
 
+#variables del satélite
 
 ω = {}
 
@@ -127,9 +133,8 @@ for p in P:
 
     ρ[p] = model.addVar(0,vtype=GRB.INTEGER, name="ρ[%s]"%(p))
 
+
 #Modelo
-
-
 
 w = {}
 
@@ -139,6 +144,7 @@ u = {}
 
 #Variables de estado
 
+#wpst cantidad de pacientes p que tienen su sesion s en el día t
 for p in P:
 
     for s in S[p]:
@@ -147,14 +153,17 @@ for p in P:
 
             w[p,s,t] = model.addVar(0,vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
 
+#cantidad de pacientes en la semana del protocolo p
 r = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="r")
 
 
 
 #Variables de accion
 
+#xpt cantiad de pacientes del protocolo p que inician su tratamiento el dia t
 x = model.addVars(P,T, lb=0.0, vtype=GRB.INTEGER, name="x")
 
+#ypstm cantidad de pacientes de p que comienzan su sesion s en modulo m del dia t
 for p in P:
 
     for s in S[p]:
@@ -165,8 +174,10 @@ for p in P:
 
                 y[p,s,t,m] = model.addVar(0,vtype=GRB.INTEGER, name="y")
 
+#z cantidad de pacientes de p que son derivados 
 z = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="z")
 
+#upstm terminan su sesion en elmodulo m del dia t
 for p in P:
 
     for s in S[p]:
@@ -181,7 +192,7 @@ for p in P:
 
 #Funcion costos
 
-k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * (m_index + 1) for p in P for s in S[p] for t in T for m_index, m in enumerate(M)) # que es el m index?
+k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * (m_index + 1) for p in P for s in S[p] for t in T for m_index, m in enumerate(M))
 
 
 
@@ -200,6 +211,7 @@ for t_index, t in enumerate(T):
      for p in P for s in S[p] if t_index+1 >= K_ps[p][int(s)-1]) + quicksum(w[p,s,t] * M_sp[p][s]\
 
      for p in P for s in S[p] if t_index+1 >= K_ps[p][int(s)-1]) <= 40, name="capacidad bloques[%s]" %t)
+
 
 #restricción 2: definifinición de y
 R1 = {}
@@ -232,7 +244,7 @@ model.addConstrs((quicksum(y[p,s,t,m] for p in P for s in S[p]) + quicksum(u[p,s
 
 
 
-#restriccion 4
+#restriccion 4 definicion de u
 
 R3 = {}
 
