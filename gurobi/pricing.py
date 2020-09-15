@@ -104,22 +104,32 @@ for i in P:
         M_sp[i].update({j:Modulos.pop(0)})
 
 # PARA ESTE EJEMPLO: toda sesión en todo protocolo usa 5 módulos
-# Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
 
-BR = 32 # Bloques regulares efectivos
+
+# Bloques regulares efectivos
 # Jornada de 8 horas
 
-BE = 9 # Bloques extra efectivos
+BR = 32 
+
+
+# Bloques extra efectivos
 # 1,5 horas
 
-lp = {}
+BE = 9 
+
+
+# Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
+
+Lp = {}
 for i in P:
-      lp.update({i:{}})
+      Lp.update({i:{}})
+
 
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
 
 lambdas = [5, 4, 3] 
 q = dict(zip(P,np.random.poisson(lambdas)))
+
 
 # k_ps indica la distancia en dias desde s=s hasta s= 1 del protocolo p
 
@@ -327,9 +337,12 @@ for p in P:
 # Definición de r_p
 # En informe (3)
 
-# Incompleta - está la 8
+R3 = {}
 
-model.addConstrs((r[p] == q[p] for p in P), name="Realizacion de las llegadas")
+# Para todo protocolo p
+for p in P:
+
+    R3[p] = model.addConstr((r[p] == z[p] + quicksum(x[p,d] for d in Lp)), name="Conservacion de flujo")
 
 
 # Restricción 4 
@@ -351,7 +364,7 @@ for p in P:
             for m_index, m in enumerate(M):
 
                 # Condición: termino en mismo día
-                if m_index + M_sp[p][s] <= BR:
+                if m_index + M_sp[p][s] - 1 <= BR + BE:
 
                     R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m_index - M_sp[p][s] - 1]], name="Definicion u [%s, %s, %s, %s]"%(p,s,t,m))
 
@@ -364,9 +377,15 @@ for p in P:
 
 R5 = {}
 
-R5[m,t] = model.addConstrs(( quicksum(y[p,s,t,m] + quicksum(y[p,s,t,M[m_index]] for m_index in range(max(1, m_index - M_sp[p][s])))\
+for t in T:
 
- for p in P for s in S[p]) <= NS for t in T for m_index, m in enumerate(M) ), name="Capacidad sillas")
+    for m_index, m in enumerate(M):
+
+        R5[m,t] =   model.addConstr(( quicksum(y[p,s,t,m] + 
+
+                    quicksum(y[p,s,t,M[m_index]] for m_index in range(max(1, m_index - M_sp[p][s])))\
+
+                    for p in P for s in S[p]) <= NS), name="Capacidad sillas")
 
 
 # RESTRICCIÓN 6
@@ -377,9 +396,13 @@ R5[m,t] = model.addConstrs(( quicksum(y[p,s,t,m] + quicksum(y[p,s,t,M[m_index]] 
 
 R6 = {}
 
-R6[m,t] = model.addConstrs((quicksum(y[p,s,t,m] for p in P for s in S[p]) + quicksum(u[p,s,t,m] for p in P for s in S[p])\
+for t in T:
 
- <= NE for t in T for m in M), name="Capacidad enfermeras")
+    for m in M:
+
+        R6[m,t] = model.addConstr((quicksum(y[p,s,t,m] for p in P for s in S[p]) + 
+                                    quicksum(u[p,s,t,m] for p in P for s in S[p]) <= NE), 
+                                    name="Capacidad enfermeras")
 
 
 # RESTRICCIÓN 7
@@ -394,14 +417,16 @@ R6[m,t] = model.addConstrs((quicksum(y[p,s,t,m] for p in P for s in S[p]) + quic
 
 R8 = {}
 
-R8[p] = model.addConstrs((r[p] == q[p] for p in P), name="Realizacion de las llegadas")
+for p in P:
+
+    R8[p] = model.addConstr((r[p] == q[p]), name="Realizacion de las llegadas")
 
 
 # RESTRICCIÓN 19
 # Definición de ω
 # En informe (19)
 
-R7 = {}
+R19 = {}
 
 # Para cada protocolo
 for p in P:
@@ -415,16 +440,18 @@ for p in P:
             # Condición de avance de sesiones
             if t_index + 1 >= K_ps[p][int(s)-1]:
 
-                R7[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t_index]] + x[p,T[t_index]]), name="Definicion ω")
+                R19[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t_index]] + x[p,T[t_index]]), name="Definicion ω")
 
 
 # RESTRICCIÓN 20
 # Definición de ρ
 # En informe (20)
 
-# Incompleta
+#R20 = {}
 
-model.addConstrs((ρ[p] == r[p] for p in P), name="Definicion ρ")
+#for p in P:
+
+    #R20[p] = model.addConstrs((ρ[p] == r[p] - VARIABLES DUALES), name="Definicion ρ")
 
 
 ##########
