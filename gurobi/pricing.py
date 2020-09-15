@@ -37,12 +37,6 @@ P = [str(k) for k in range(1,4)]
 Largo_P = [9, 6, 8] 
 # Duracion de cada protocolo en sesiones
 
-P = [str(k) for k in range(1,4)] 
-# 3 protocolos
-
-Largo_P = [9,6,8] 
-# Duracion de cada protocolo en sesiones
-
 
 # SESIONES
 
