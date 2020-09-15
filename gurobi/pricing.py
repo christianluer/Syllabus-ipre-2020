@@ -198,13 +198,17 @@ for p in P:
                 u[p,s,t,m] = model.addVar(0,vtype=GRB.INTEGER, name="u")
 
 
+##########
+# MODELO #
+##########
 
-# Funcion costos
-# En informe, descrita como (9)
+# FUNCIÓN COSTO
+# En informe (9)
 
 k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * (m_index + 1) for p in P for s in S[p] for t in T for m_index, m in enumerate(M))
 
-#agregar los costos
+# FUNCIÓN OBJETIVO
+# En informe (26)
 
 model.setObjective( (1 - γ) * β + quicksum(ω[p,s,t] * W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(ρ[p] * R[p] for p in P) - k_as, GRB.MAXIMIZE)
 
@@ -294,7 +298,16 @@ model.addConstrs((quicksum(y[p,s,t,m] for p in P for s in S[p]) + quicksum(u[p,s
  <= NE for t in T for m in M), name="Capacidad enfermeras")
 
 
-# Restricción 7: definicion ω
+# RESTRICCIÓN 8
+# Realización de llegadas - probabilidades de transición
+# En informe (8)
+
+model.addConstrs((r[p] == q[p] for p in P), name="Realizacion de las llegadas")
+
+
+# RESTRICCIÓN 19
+# Definición de ω
+# En informe (19)
 
 R7 = {}
 
@@ -308,17 +321,18 @@ for p in P:
 
                 R7[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t_index]] + x[p,T[t_index]]), name="Definicion ω")
 
-# Restricción 8
 
-model.addConstrs((r[p] == q[p] for p in P), name="Realizacion de las llegadas")
-
-
-# Definicion ρ
+# RESTRICCIÓN 20
+# Definición de ρ
+# En informe (20)
 
 model.addConstrs((ρ[p] == r[p] for p in P), name="Definicion ρ")
 
-#Restricciones que relacionan los ω y los ρ
+##########
+# FALTAN #
+##########
 
+# Restricciones que relacionan los ω y los ρ
 
 
 model.update()
