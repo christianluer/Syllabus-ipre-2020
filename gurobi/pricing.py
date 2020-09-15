@@ -20,16 +20,16 @@ from gurobipy import *
 #         Modulos.append(float(i.value))
 
 
+#############
+# CONJUNTOS #
+#############
 
+# DÍAS
 
-
-#Conjuntos
-
-
-# Días
 T = [str(k) for k in range(1,7)] # 6 dias - 1, 2, ..., 6
 
-# Protocolos
+# PROTOCOLOS
+
 P = [str(k) for k in range(1,4)] # 3 protocolos - 1, 2, 3
 Largo_P = [9, 6, 8] #Duracion de cada protocolo en sesiones
 
@@ -38,35 +38,54 @@ P = [str(k) for k in range(1,4)] # 3 protocolos
 Largo_P = [9,6,8] #Duracion de cada protocolo en sesiones
 
 
-#Sesiones
-# Sesiones
-S = {} #Sesiones del protocolo p
+# SESIONES
+
+# Sesiones del protocolo p
+
+S = {} 
 
 for i in P:
 
   S.update({i:[str(k) for k in range(1,Largo_P[int(i)-1] + 1)]})
 
-# Módulos
-M = [str(k) for k in range(1,41)] # 40 bloques - 1, 2, ..., 40 
+# MÓDULOS
+
+M = [str(k) for k in range(1,41)] 
+# 40 bloques - 1, 2, ..., 40 
 # 10 horas de trabajo, cada modulo consiste en 15 min
 
-#Parametros
+
+##############
+# PARÁMETROS #
+##############
+
+# Variable GAMMA
 
 γ = 0.95
 
-NE = 5 # Número de enfermeras
+# Número de enfermeras
 
-NS = 20 # Número sillas
+NE = 5 
 
+# Número de sillas
 
-Costos = [0.03,0.02,0.01] #Costos por protocolo
+NS = 20 
 
-CD = dict(zip(P,Costos)) # Asocia los costos cada protocolo con su costo
+# Costos por protocolo
+
+Costos = [0.03,0.02,0.01] 
+
+CD = dict(zip(P,Costos)) 
+# Asocia los costos cada protocolo con su costo
 # *** costo de derivacion por protocolo
 
-Modulos = [5 for k in range(1,24)] # Duraciones de cada sesion
+# Duraciones de cada sesion
 
-M_sp = {} # Cantidad de modulos de la sesion s del tratamiento p
+Modulos = [5 for k in range(1,24)] 
+
+# Cantidad de modulos de la sesion s del tratamiento p
+
+M_sp = {} 
 
 for i in P:
 
@@ -76,26 +95,27 @@ for i in P:
 
         M_sp[i].update({j:Modulos.pop(0)})
 
-# todos las sesiones de todos los protocolos están usando 5 modulos cada uno
-#Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
+# PARA ESTE EJEMPLO: toda sesión en todo protocolo usa 5 módulos
+# Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
+
 lp = {}
 for i in P:
       lp.update({i:{}})
 
-
-
-
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
+
 lambdas = [5, 4, 3] 
 q = dict(zip(P,np.random.poisson(lambdas)))
 
 # k_ps indica la distancia en dias desde s=s hasta s= 1 del protocolo p
+
 K_ps = {} 
 
 for i in P:
 
   K_ps.update({i:[k for k in range(1,Largo_P[int(i)-1] + 1)]})
-# EN ESTE CASO  está considera que todas las sesiones se hacen consecutivas
+
+# PARA ESTE EJEMPLO: sesiones consecutivas
 
 
 model = Model("Asignacion")
@@ -105,6 +125,7 @@ model = Model("Asignacion")
 β = 1
 
 # Construccion de Wpst 
+
 W = {}
 
 for p in P:
@@ -116,15 +137,16 @@ for p in P:
             W[p,s,t] = 1
 
 # Construcción de Rp
+
 R = {}
 
 for p in P:
 
     R[p] = 5
 
-# Construcción de ωpst
-
 # Variables del satélite
+
+# Construcción de ωpst
 
 ω = {}
 
@@ -143,7 +165,10 @@ for p in P:
     ρ[p] = model.addVar(0,vtype=GRB.INTEGER, name="ρ[%s]"%(p))
 
 
-# Modelo
+##########
+# MODELO #
+##########
+
 
 w = {}
 
@@ -151,9 +176,14 @@ y = {}
 
 u = {}
 
-# Variables de estado
 
-# wpst cantidad de pacientes p que tienen su sesion s en el día t
+#######################
+# VARIABLES DE ESTADO #
+#######################
+
+# w [p,s,t] 
+# Cantidad de protocolos -p- que tienen su sesion -s- en el día -t-
+
 for p in P:
 
     for s in S[p]:
@@ -162,17 +192,26 @@ for p in P:
 
             w[p,s,t] = model.addVar(0,vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
 
+
+# r [p]
 # Cantidad de pacientes en la semana del protocolo p
+
 r = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="r")
 
 
+#######################
+# VARIABLES DE ACCIÖN #
+#######################
 
-# Variables de accion
+# x [p,t] 
+# Cantiad de protocolos -p- que inician su tratamiento el dia -t-
 
-# xpt cantiad de pacientes del protocolo p que inician su tratamiento el dia t
 x = model.addVars(P,T, lb=0.0, vtype=GRB.INTEGER, name="x")
 
-# ypstm cantidad de pacientes de p que comienzan su sesion s en modulo m del dia t
+
+# y [p,s,t,m] 
+# Cantidad de protocolos -p- que comienzan su sesion -s- en modulo -m- del dia -t-
+
 for p in P:
 
     for s in S[p]:
@@ -183,10 +222,16 @@ for p in P:
 
                 y[p,s,t,m] = model.addVar(0,vtype=GRB.INTEGER, name="y")
 
-# z cantidad de pacientes de p que son derivados 
+
+# z [p]
+# Cantidad de protocolos -p- que son derivados a sistema privado
+
 z = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="z")
 
-# upstm terminan su sesion en elmodulo m del dia t
+
+# u [p,s,t,m] 
+# Cantidad de protocolos -p- que terminan su sesion -s- en el modulo -m- del dia -t-
+
 for p in P:
 
     for s in S[p]:
@@ -198,16 +243,17 @@ for p in P:
                 u[p,s,t,m] = model.addVar(0,vtype=GRB.INTEGER, name="u")
 
 
-##########
-# MODELO #
-##########
-
-# FUNCIÓN COSTO
+#################
+# FUNCIÓN COSTO #
+#################
 # En informe (9)
 
 k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * (m_index + 1) for p in P for s in S[p] for t in T for m_index, m in enumerate(M))
 
-# FUNCIÓN OBJETIVO
+
+####################
+# FUNCIÓN OBJETIVO #
+####################
 # En informe (26)
 
 model.setObjective( (1 - γ) * β + quicksum(ω[p,s,t] * W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(ρ[p] * R[p] for p in P) - k_as, GRB.MAXIMIZE)
