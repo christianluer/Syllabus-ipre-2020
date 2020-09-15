@@ -287,10 +287,13 @@ R2 = {}
 
 # Para cada p en P
 for p in P:
+
     # Para cada sesión s en S(p
     for s in S[p]:
+
         # Para cada t en T
         for t_index, t in enumerate(T):
+
             # Condicion para evitar exponente igual a 0
             if t_index+1 >= K_ps[p][int(s)-1]:
 
@@ -313,14 +316,19 @@ model.addConstrs((r[p] == q[p] for p in P), name="Realizacion de las llegadas")
 
 R4 = {}
 
+# Para cada protocolo
 for p in P:
 
+    # Para cada sesión
     for s in S[p]:
 
+        # Para cada día
         for t in T:
 
+            # Para cada módulo
             for m_index, m in enumerate(M):
 
+                # Condición: termino en mismo día
                 if m_index + M_sp[p][s] <= 40:
 
                     R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m_index - M_sp[p][s] - 1]], name="definicion u [%s, %s, %s, %s]"%(p,s,t,m))
@@ -357,12 +365,16 @@ model.addConstrs((r[p] == q[p] for p in P), name="Realizacion de las llegadas")
 
 R7 = {}
 
+# Para cada protocolo
 for p in P:
 
+    # Para cada sesión
     for s in S[p]:
 
+        # Para cada día
         for t_index, t in enumerate(T):
 
+            # Condición de avance de sesiones
             if t_index + 1 >= K_ps[p][int(s)-1]:
 
                 R7[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t_index]] + x[p,T[t_index]]), name="Definicion ω")
@@ -373,6 +385,7 @@ for p in P:
 # En informe (20)
 
 model.addConstrs((ρ[p] == r[p] for p in P), name="Definicion ρ")
+
 
 ##########
 # FALTAN #
