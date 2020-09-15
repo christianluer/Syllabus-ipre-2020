@@ -26,16 +26,22 @@ from gurobipy import *
 
 # DÍAS
 
-T = [str(k) for k in range(1,7)] # 6 dias - 1, 2, ..., 6
+T = [str(k) for k in range(1,7)] 
+# 6 dias - 1, 2, ..., 6
 
 # PROTOCOLOS
 
-P = [str(k) for k in range(1,4)] # 3 protocolos - 1, 2, 3
-Largo_P = [9, 6, 8] #Duracion de cada protocolo en sesiones
+P = [str(k) for k in range(1,4)] 
+# 3 protocolos - 1, 2, 3
 
-P = [str(k) for k in range(1,4)] # 3 protocolos
+Largo_P = [9, 6, 8] 
+# Duracion de cada protocolo en sesiones
 
-Largo_P = [9,6,8] #Duracion de cada protocolo en sesiones
+P = [str(k) for k in range(1,4)] 
+# 3 protocolos
+
+Largo_P = [9,6,8] 
+# Duracion de cada protocolo en sesiones
 
 
 # SESIONES
@@ -47,6 +53,7 @@ S = {}
 for i in P:
 
   S.update({i:[str(k) for k in range(1,Largo_P[int(i)-1] + 1)]})
+
 
 # MÓDULOS
 
@@ -76,8 +83,8 @@ NS = 20
 Costos = [0.03,0.02,0.01] 
 
 CD = dict(zip(P,Costos)) 
-# Asocia los costos cada protocolo con su costo
-# *** costo de derivacion por protocolo
+# Asocia los costos cada protocolo con su costo de derivación
+
 
 # Duraciones de cada sesion
 
