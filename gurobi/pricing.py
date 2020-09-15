@@ -60,7 +60,7 @@ M = [str(k) for k in range(1,41)]
 # PARÁMETROS #
 ##############
 
-# Variable GAMMA
+# Variable GAMMA - factor de penalización para la minimziación
 
 γ = 0.95
 
@@ -79,6 +79,13 @@ Costos = [0.03,0.02,0.01]
 CD = dict(zip(P,Costos)) 
 # Asocia los costos cada protocolo con su costo de derivación
 
+# Costo bloque regular
+
+CR = 1
+
+# Costo bloque extra
+
+CE = 2
 
 # Duraciones de cada sesion
 
@@ -98,6 +105,12 @@ for i in P:
 
 # PARA ESTE EJEMPLO: toda sesión en todo protocolo usa 5 módulos
 # Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
+
+BR = 32 # Bloques regulares efectivos
+# Jornada de 8 horas
+
+BE = 9 # Bloques extra efectivos
+# 1,5 horas
 
 lp = {}
 for i in P:
@@ -193,11 +206,13 @@ for p in P:
 
             w[p,s,t] = model.addVar(0,vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
 
+# w[p,s,t] = model.addVar(P, S, T, lb=0.0, vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
+
 
 # r [p]
 # Cantidad de pacientes en la semana del protocolo p
 
-r = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="r")
+r = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="r[%s]"%(p))
 
 
 #######################
@@ -207,7 +222,7 @@ r = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="r")
 # x [p,t] 
 # Cantiad de protocolos -p- que inician su tratamiento el dia -t-
 
-x = model.addVars(P,T, lb=0.0, vtype=GRB.INTEGER, name="x")
+x = model.addVars(P,T, lb=0.0, vtype=GRB.INTEGER, name="x[%s,%s]"%(p,t))
 
 
 # y [p,s,t,m] 
@@ -221,13 +236,13 @@ for p in P:
 
             for m in M:
 
-                y[p,s,t,m] = model.addVar(0,vtype=GRB.INTEGER, name="y")
+                y[p,s,t,m] = model.addVar(0,vtype=GRB.INTEGER, name="y[%s,%s,%s,%s]"%(p,s,t,m))
 
 
 # z [p]
 # Cantidad de protocolos -p- que son derivados a sistema privado
 
-z = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="z")
+z = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="z[%s]"%(p))
 
 
 # u [p,s,t,m] 
@@ -241,13 +256,15 @@ for p in P:
 
             for m in M:
 
-                u[p,s,t,m] = model.addVar(0,vtype=GRB.INTEGER, name="u")
+                u[p,s,t,m] = model.addVar(0,vtype=GRB.INTEGER, name="u[%s,%s,%s,%s]"%(p,s,t,m))
 
 
 #################
 # FUNCIÓN COSTO #
 #################
 # En informe (9)
+
+# Faltan los costos
 
 k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * (m_index + 1) for p in P for s in S[p] for t in T for m_index, m in enumerate(M))
 
@@ -271,13 +288,15 @@ model.setObjective( (1 - γ) * β + quicksum(ω[p,s,t] * W[p,s,t] for p in P for
 R1 = {}
 
 # Para todo día t perteneciente a T
-for t_index, t in enumerate(T):
+# t_index + 1 = t
 
-    R1[t] = model.addConstr(quicksum(x[p,T[t_index-K_ps[p][int(s)-1]+1]] * M_sp[p][s]\
+for t in T:
 
-     for p in P for s in S[p] if t_index+1 >= K_ps[p][int(s)-1]) + quicksum(w[p,s,t] * M_sp[p][s]\
+    R1[t] = model.addConstr(quicksum(x[p,T[(int(t)-1)-K_ps[p][int(s)-1]+1]] * M_sp[p][s]\
 
-     for p in P for s in S[p] if t_index+1 >= K_ps[p][int(s)-1]) <= 40, name="Capacidad bloques[%s]" %t)
+     for p in P for s in S[p] if int(t) >= K_ps[p][int(s)-1]) + quicksum(w[p,s,t] * M_sp[p][s]\
+
+     for p in P for s in S[p] if int(t) >= K_ps[p][int(s)-1]) <= 40, name="Capacidad bloques[%s]" %t)
 
 
 # RESTRICCIÓN 2
@@ -308,6 +327,8 @@ for p in P:
 # Definición de r_p
 # En informe (3)
 
+# Incompleta - está la 8
+
 model.addConstrs((r[p] == q[p] for p in P), name="Realizacion de las llegadas")
 
 
@@ -330,16 +351,20 @@ for p in P:
             for m_index, m in enumerate(M):
 
                 # Condición: termino en mismo día
-                if m_index + M_sp[p][s] <= 40:
+                if m_index + M_sp[p][s] <= BR:
 
-                    R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m_index - M_sp[p][s] - 1]], name="definicion u [%s, %s, %s, %s]"%(p,s,t,m))
+                    R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m_index - M_sp[p][s] - 1]], name="Definicion u [%s, %s, %s, %s]"%(p,s,t,m))
 
 
 # RESTRICCIÓN 5
 # Acotar a número de sillas disponibles
 # En informe (5)
 
-model.addConstrs(( quicksum(y[p,s,t,m] + quicksum(y[p,s,t,M[m_index]] for m_index in range(max(1, m_index - M_sp[p][s])))\
+# Revisar
+
+R5 = {}
+
+R5[m,t] = model.addConstrs(( quicksum(y[p,s,t,m] + quicksum(y[p,s,t,M[m_index]] for m_index in range(max(1, m_index - M_sp[p][s])))\
 
  for p in P for s in S[p]) <= NS for t in T for m_index, m in enumerate(M) ), name="Capacidad sillas")
 
@@ -348,16 +373,28 @@ model.addConstrs(( quicksum(y[p,s,t,m] + quicksum(y[p,s,t,M[m_index]] for m_inde
 # Acotar a número de enfermeras
 # En informe (6)
 
-model.addConstrs((quicksum(y[p,s,t,m] for p in P for s in S[p]) + quicksum(u[p,s,t,m] for p in P for s in S[p])\
+# Revisar
+
+R6 = {}
+
+R6[m,t] = model.addConstrs((quicksum(y[p,s,t,m] for p in P for s in S[p]) + quicksum(u[p,s,t,m] for p in P for s in S[p])\
 
  <= NE for t in T for m in M), name="Capacidad enfermeras")
+
+
+# RESTRICCIÓN 7
+# En informe (7)
 
 
 # RESTRICCIÓN 8
 # Realización de llegadas - probabilidades de transición
 # En informe (8)
 
-model.addConstrs((r[p] == q[p] for p in P), name="Realizacion de las llegadas")
+# ¿Qué es r prima?
+
+R8 = {}
+
+R8[p] = model.addConstrs((r[p] == q[p] for p in P), name="Realizacion de las llegadas")
 
 
 # RESTRICCIÓN 19
@@ -384,6 +421,8 @@ for p in P:
 # RESTRICCIÓN 20
 # Definición de ρ
 # En informe (20)
+
+# Incompleta
 
 model.addConstrs((ρ[p] == r[p] for p in P), name="Definicion ρ")
 
