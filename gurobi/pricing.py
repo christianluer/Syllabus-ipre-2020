@@ -25,6 +25,7 @@ from gurobipy import *
 
 #Conjuntos
 
+
 # Días
 
 T = [str(k) for k in range(1,7)] #6 dias
@@ -35,12 +36,13 @@ P = [str(k) for k in range(1,4)] # 3 protocolos
 
 Largo_P = [9,6,8] #Duracion de cada protocolo en sesiones
 
+
 #Sesiones
 S = {} #Sesiones del protocolo p
 
 for i in P:
 
-  S.update({i:[str(k) for k in range(1,Largo_P[int(i)-1] + 1)]}) #***
+  S.update({i:[str(k) for k in range(1,Largo_P[int(i)-1] + 1)]})
 
 
 # Módulos
@@ -62,6 +64,10 @@ Costos = [0.03,0.02,0.01] #Costos por protocolo
 
 CD = dict(zip(P,Costos)) #asocia los costos cada protocolo con su costo. ***costo de derivacion por protocolo
 
+#agregar costos de horas extra
+CE = 
+CR= 
+
 Modulos = [5 for k in range(1,24)] #Duraciones de cada sesion
 
 M_sp = {} #cantidad de modulos de la sesion s del tratamiento p
@@ -75,6 +81,13 @@ for i in P:
         M_sp[i].update({j:Modulos.pop(0)})
 
 # todos las sesiones de todos los protocolos están usando 5 modulos cada uno
+#Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
+lp = {}
+for i in P:
+      lp.update({i:{}})
+
+
+
 
 #variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
 lambdas = [5,4,3] 
@@ -194,7 +207,7 @@ for p in P:
 
 k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * (m_index + 1) for p in P for s in S[p] for t in T for m_index, m in enumerate(M))
 
-
+#agregar los costos
 
 model.setObjective( (1 - γ) * β + quicksum(ω[p,s,t] * W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(ρ[p] * R[p] for p in P) - k_as, GRB.MAXIMIZE)
 
@@ -231,6 +244,8 @@ for p in P:
 
 #restricción 3 conservacion de flujo de pacientes
 model.addConstrs((r[p] == z[p] + quicksum(x[p,t] for t in T) for p in P), name="conservacion de flujo")
+
+
 
 
 
