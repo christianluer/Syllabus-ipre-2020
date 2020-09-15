@@ -209,10 +209,13 @@ k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * (m_index + 1) f
 model.setObjective( (1 - γ) * β + quicksum(ω[p,s,t] * W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(ρ[p] * R[p] for p in P) - k_as, GRB.MAXIMIZE)
 
 
+#################
+# RESTRICCIONES #
+#################
 
-# Restricciones
-
-# Restricción 1: respetar cantidad de modulos de atencion
+# RESTRICCIÓN 1
+# Respetar cantidad de modulos de atencion
+# En informe (1)
 
 R1 = {}
 
@@ -226,7 +229,9 @@ for t_index, t in enumerate(T):
      for p in P for s in S[p] if t_index+1 >= K_ps[p][int(s)-1]) <= 40, name="Capacidad bloques[%s]" %t)
 
 
-# Restricción 2: definifinición de y
+# RESTRICCIÓN 2
+# Definifinición de y
+# En informe (2)
 
 R2 = {}
 
@@ -244,22 +249,17 @@ for p in P:
                 , name="Definicion y [%s, %s, %s]"%(p,s,t))
 
 
-# Restricción 3: conservacion de flujo de pacientes
+# RESTRICCIÓN 3
+# Conservacion de flujo de pacientes
 # Definición de r_p
-
-
+# En informe (3)
 
 model.addConstrs((r[p] == q[p] for p in P), name="Realizacion de las llegadas")
 
 
-#restriccion 5 enfermeras
-model.addConstrs((quicksum(y[p,s,t,m] for p in P for s in S[p]) + quicksum(u[p,s,t,m] for p in P for s in S[p])\
-
- <= NE for t in T for m in M), name="Capacidad enfermeras")
-
-
-
-# Restriccion 4: definicion de u, con y
+# Restricción 4 
+# Definicion de u, con y
+# En informe (4)
 
 R4 = {}
 
@@ -275,17 +275,24 @@ for p in P:
 
                     R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m_index - M_sp[p][s] - 1]], name="definicion u [%s, %s, %s, %s]"%(p,s,t,m))
 
-# Restriccion 5: capacidad sillas
+
+# RESTRICCIÓN 5
+# Acotar a número de sillas disponibles
+# En informe (5)
 
 model.addConstrs(( quicksum(y[p,s,t,m] + quicksum(y[p,s,t,M[m_index]] for m_index in range(max(1, m_index - M_sp[p][s])))\
 
  for p in P for s in S[p]) <= NS for t in T for m_index, m in enumerate(M) ), name="Capacidad sillas")
 
-# Restriccion 6: enfermeras
+
+# RESTRICCIÓN 6
+# Acotar a número de enfermeras
+# En informe (6)
 
 model.addConstrs((quicksum(y[p,s,t,m] for p in P for s in S[p]) + quicksum(u[p,s,t,m] for p in P for s in S[p])\
 
  <= NE for t in T for m in M), name="Capacidad enfermeras")
+
 
 # Restricción 7: definicion ω
 
