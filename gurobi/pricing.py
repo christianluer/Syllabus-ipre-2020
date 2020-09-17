@@ -196,6 +196,8 @@ for p in P:
 
 w = {}
 
+w_prima = {}
+
 y = {}
 
 u = {}
@@ -215,6 +217,15 @@ for p in P:
         for t in T:
 
             w[p,s,t] = model.addVar(0,vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
+
+
+for p in P:
+
+    for s in S[p]:
+
+        for t in T:
+
+            w_prima[p,s,t] = model.addVar(0,vtype=GRB.INTEGER, name="w_prima[%s,%s,%s]"%(p,s,t))
 
 # w[p,s,t] = model.addVar(P, S, T, lb=0.0, vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
 
@@ -407,6 +418,22 @@ for t in T:
 
 # RESTRICCIÓN 7
 # En informe (7)
+
+R7 = {}
+
+for p in P:
+
+    for s in S[p]:
+
+        for t_index, t in enumerate(T):
+
+            if t_index + 7 <= len(T):
+
+                # Condicion para evitar exponente igual a 0
+                if t_index + 7 >= K_ps[p][int(s)-1]:
+
+                    R7[p,s,t] = model.addConstr(w_prima[p,s,t] == w[p,s,T[t_index-K_ps[p][int(s)-1]+7]] + x[p,T[t_index+7]],
+                                 name="Definición w'")
 
 
 # RESTRICCIÓN 8
