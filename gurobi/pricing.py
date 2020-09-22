@@ -182,6 +182,9 @@ for p in P:
 
             ω[p,s,t] = model.addVar(0,vtype=GRB.INTEGER, name="ω[%s,%s,%s]"%(p,s,t))
 
+
+# Construcción de ρ p
+
 ρ = {}
 
 for p in P:
@@ -236,6 +239,11 @@ for p in P:
 r = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="r[%s]"%(p))
 
 
+# r_prima [p]
+
+r_prima = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="r_prima[%s]"%(p))
+
+
 #######################
 # VARIABLES DE ACCIÖN #
 #######################
@@ -264,6 +272,10 @@ for p in P:
 # Cantidad de protocolos -p- que son derivados a sistema privado
 
 z = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="z[%s]"%(p))
+
+for p in P:
+
+    z[p] = 0
 
 
 # u [p,s,t,m] 
@@ -384,8 +396,6 @@ for p in P:
 # Acotar a número de sillas disponibles
 # En informe (5)
 
-# Revisar
-
 R5 = {}
 
 for t in T:
@@ -402,8 +412,6 @@ for t in T:
 # RESTRICCIÓN 6
 # Acotar a número de enfermeras
 # En informe (6)
-
-# Revisar
 
 R6 = {}
 
@@ -446,7 +454,7 @@ R8 = {}
 
 for p in P:
 
-    R8[p] = model.addConstr((r[p] == q[p]), name="Realizacion de las llegadas")
+    R8[p] = model.addConstr((r_prima[p] == q[p]), name="Realizacion de las llegadas")
 
 
 # RESTRICCIÓN 19
@@ -464,32 +472,31 @@ for p in P:
         # Para cada día
         for t_index, t in enumerate(T):
 
-            # Condición de avance de sesiones
-            if t_index + 1 >= K_ps[p][int(s)-1]:
+            if t_index + 7 <= len(T):
 
-                R19[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t_index]] + x[p,T[t_index]]), name="Definicion ω")
+                # Condición de avance de sesiones
+                if t_index + 1 >= K_ps[p][int(s)-1]:
+
+                    R19[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t_index+7]] + x[p,T[t_index+7]]), name="Definicion ω")
 
 
 # RESTRICCIÓN 20
 # Definición de ρ
 # En informe (20)
 
-#R20 = {}
+R20 = {}
 
-#for p in P:
+for p in P:
 
-    #R20[p] = model.addConstrs((ρ[p] == r[p] - VARIABLES DUALES), name="Definicion ρ")
-
-
-##########
-# FALTAN #
-##########
-
-# Restricciones que relacionan los ω y los ρ
+    R20[p] = model.addConstr((ρ[p] == r[p] - (γ * r_prima[p])), name="Definicion ρ")
 
 
 model.update()
 
 model.optimize()
+
+model.computeIIS()
+
+model.write("output_pricing.ilp")
 
 model.printAttr("X")
