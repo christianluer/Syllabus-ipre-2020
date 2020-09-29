@@ -100,7 +100,7 @@ for p in P:
     for s in S[p]:
 
         for t in T:
-
+            
             maestro.addConstr(sum((omega_cpst[c,p,s,t] * pi[c]) for c in C) >= E_alpha_w[p,s,t])
 
 #Restricción 3

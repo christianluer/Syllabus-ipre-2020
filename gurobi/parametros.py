@@ -3,15 +3,15 @@ from gurobipy import *
 import numpy as np
 
 
-#Conjuntos
+# Conjuntos
 
 contador_de_columnas = 1
 
-C = [k for k in range(1, contador_de_columnas + 1)] #numero de columnas
+C = [k for k in range(1, contador_de_columnas + 1)] # Número de columnas
 
-#Otros conjuntos 
+# Otros conjuntos 
 
-T = [k for k in range(1, 13)] #2 semanas sin contar los domingos
+T = [k for k in range(1, 13)] # 2 semanas sin contar los domingos
 # Buen punto inicial para revisar factibilidad
 
 P = [k for k in range(1, 4)] #3 protocolos  
@@ -21,41 +21,41 @@ M = [k for k in range(1, 53)] #52 módulos incluídas horas extra
 # 13 horas en total
 
 S = {1: [0,1,2,3,4,5,6,7,8], 2: [0,1,2,3,4,5], 3: [0,1,2,3,4,5,6,7]} 
-#duración de las sesiones por protocolo p sin contar los días de descanso
+# Duración de las sesiones por protocolo p sin contar los días de descanso
 
 
-#Parámetros utilizados en el modelo, modificables
+# Parámetros utilizados en el modelo, modificables
 
-CD_p = [16800, 89600, 56000] #Costo derivación por protocolo
+CD_p = [16800, 89600, 56000] # Costo derivación por protocolo
 
-BR = 32 #Bloques regulares efectivos
+BR = 32 # Bloques regulares efectivos
 # Jornada de 8 horas
 
-BE = 9 #Bloques extra efectivos
+BE = 9 # Bloques extra efectivos
 # 1,5 horas
 
-BR2 = 40 #Bloques regulares nominales
+BR2 = 40 # Bloques regulares nominales
 
-BE2 = [k for k in range(1, 13)] #bloques extra nominales
+BE2 = [k for k in range(1, 13)] # Bloques extra nominales
 
-CE = 250 #Costo hora extra
+CE = 250 # Costo hora extra
 
-CR = 100 #Costo hora regular
+CR = 100 # Costo hora regular
 
-CM = (CE - CR)/4 #Costo marginal por bloque extra de atención
+CM = (CE - CR)/4 # Costo marginal por bloque extra de atención
 
 K_ps = {1: [0,1,2,5,6,7,12,13,14], 2: [0,1,8,9,16,18], 3: [0,2,4,6,8,10,12,14]} 
-#Días desde que un paciente con protocolo p inicia su tratamiento hasta que está en la sesión s
+# Días desde que un paciente con protocolo p inicia su tratamiento hasta que está en la sesión s
 
 M_ps = {1: [2,2,2,4,4,4,2,2,2], 2: [22,22,22,22,22,18], 3: [12,8,12,8,12,8,12,8]} 
-#Módulo de atención protocolo p en sesión s
+# Corresponde a la duración en módulos de la sesión s del protocolo p
 
 gamma = 0.99
 
-lambdas = [1.6, 1.1, 2.1] #tasa de llegada dist. poisson
+lambdas = [1.6, 1.1, 2.1] # tasa de llegada dist. poisson
 
 
-#Variables iniciales arbitrarias
+# Variables iniciales arbitrarias
 
 # Variables de estado (parámetros obtenidos del pricing)
 
