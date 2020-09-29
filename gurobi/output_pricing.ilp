@@ -3,7 +3,7 @@
 Maximize
   + 0.05 Constant
 Subject To
- Realizacion_de_las_llegadas: r_prima[3][1] = 9
+ Realizacion_de_las_llegadas: r_prima[3][1] = 4
  Definicion_ρ: ρ[1] - r[3][1] + 0.95 r_prima[3][1] = 0
 Bounds
  ρ[1] free

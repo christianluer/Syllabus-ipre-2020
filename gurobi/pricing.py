@@ -120,9 +120,11 @@ BE = 9
 
 # Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
 
+Lp_list = [5,5,5]
+
 Lp = {}
 for i in P:
-      Lp.update({i:{}})
+      Lp.update({i:{Lp_list.pop(0)}})
 
 
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
