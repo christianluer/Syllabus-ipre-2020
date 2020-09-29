@@ -5,12 +5,12 @@ from collections import defaultdict
 
 semanas_de_simulacion = 4
 
-dias = ["lunes", "martes", "miercoles", "jueves","viernes", "sabado", "domingo"]
+dias = ["lunes", "martes", "miercoles", "jueves","viernes", "sabado"]
 calendario = defaultdict(defaultdict)
 semana = defaultdict(defaultdict)
-modulo = defaultdict(bool)
+modulo = defaultdict(list)
 for i in range(1, 41):
-    modulo[i] = True
+    modulo[i] = []
 for i in dias:
     semana[i] = modulo
 
