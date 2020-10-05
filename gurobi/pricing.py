@@ -74,7 +74,7 @@ NS = 20
 
 # Costos por protocolo
 
-Costos = [0.03,0.02,0.01] 
+Costos = [0.03,0.02,0.01] #porque son estos???
 
 CD = dict(zip(P,Costos)) 
 # Asocia los costos cada protocolo con su costo de derivación
