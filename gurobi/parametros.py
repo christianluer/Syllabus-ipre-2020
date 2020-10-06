@@ -19,14 +19,15 @@ P = [k for k in range(1, 4)] #3 protocolos
 
 M = [k for k in range(1, 53)] #52 módulos incluídas horas extra
 # 13 horas en total
+##esta distinto al pricing, cual tomar?
 
 S = {1: [0,1,2,3,4,5,6,7,8], 2: [0,1,2,3,4,5], 3: [0,1,2,3,4,5,6,7]} 
 # Duración de las sesiones por protocolo p sin contar los días de descanso
-
+# quizas hacer la construcción de los parámetros igual que en el pricing?
 
 # Parámetros utilizados en el modelo, modificables
 
-CD_p = [16800, 89600, 56000] # Costo derivación por protocolo
+CD_p = [16800, 89600, 56000] # Costo derivación por protocolo (también están distintos a los del pricing)
 
 BR = 32 # Bloques regulares efectivos
 # Jornada de 8 horas
@@ -38,14 +39,15 @@ BR2 = 40 # Bloques regulares nominales
 
 BE2 = [k for k in range(1, 13)] # Bloques extra nominales
 
-CE = 250 # Costo hora extra
+CE = 250 # Costo hora extra #arreglar con respecto al pricing
 
 CR = 100 # Costo hora regular
 
-CM = (CE - CR)/4 # Costo marginal por bloque extra de atención
+CM = (CE - CR)/4 # Costo marginal por bloque extra de atención #???
 
 K_ps = {1: [0,1,2,5,6,7,12,13,14], 2: [0,1,8,9,16,18], 3: [0,2,4,6,8,10,12,14]} 
-# Días desde que un paciente con protocolo p inicia su tratamiento hasta que está en la sesión s
+# Días desde que un paciente con protocolo p inicia su tratamiento hasta que está en la sesión s 
+#quizas deberíamos ocupar los mismos que en el pricing
 
 M_ps = {1: [2,2,2,4,4,4,2,2,2], 2: [22,22,22,22,22,18], 3: [12,8,12,8,12,8,12,8]} 
 # Corresponde a la duración en módulos de la sesión s del protocolo p
@@ -62,7 +64,7 @@ lambdas = [1.6, 1.1, 2.1] # tasa de llegada dist. poisson
 # Variable de estado W-p,s,t
 # Cantidad de pacientes con protocolo p que tienen agendada su sesión s en el día t
 
-w_pst_dada = {}
+w_pst_dada = {} #cantididad de pacientes con protocolo p que tiene su sesión s el día t
 
 for p in P:
 # Para cada protocolo

@@ -28,7 +28,7 @@ for c in C:
 
         k_c[c] = quicksum(z_p_dada[p]*CD_p[p-1] for p in P) + quicksum(hora_extra * u_pstm_dada[p,s,t,m] * CM for hora_extra in BE2 for p in P for s in S[p] for t in T for m in range(BR2 + hora_extra, 53))
 
-
+#porque p-1 en cdp?
 # Omega 
 
 omega_cpst = {}

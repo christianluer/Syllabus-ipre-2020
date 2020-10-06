@@ -74,7 +74,7 @@ NS = 20
 
 # Costos por protocolo
 
-Costos = [0.03,0.02,0.01] 
+Costos = [0.03,0.02,0.01] #porque son estos???
 
 CD = dict(zip(P,Costos)) 
 # Asocia los costos cada protocolo con su costo de derivación
@@ -125,6 +125,7 @@ Lp_list = [5,5,5]
 Lp = {}
 for i in P:
       Lp.update({i:{Lp_list.pop(0)}})
+print(Lp)
 
 
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
@@ -301,7 +302,7 @@ for p in P:
 
 # Faltan los costos
 
-k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * (m_index + 1) for p in P for s in S[p] for t in T for m_index, m in enumerate(M))
+k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * (m_index + 1) for p in P for s in S[p] for t in T for m_index, m in enumerate(M))*(CE-CR)
 
 
 ####################
