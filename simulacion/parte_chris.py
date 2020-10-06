@@ -8,12 +8,33 @@ tipos_de_cancer = [1, 2, 3, 4]  # pueden ser nombres tambien
 asientos = 4
 modulos_atencion = 4 # tomara 4 modulos de 15 minutos el atender a un paciente
 dias = ["lunes", "martes", "miercoles", "jueves","viernes", "sabado"]
+numero_enfermeras_minimo = 6
+
+
+
+class Enfermera:
+    def __init__(self):
+        self.atendiendo = False
+
+
+class Calendario:
+    def __init__(self, calendario):
+        self.calendario = calendario
+
+    def numero_enfermeras_ocupadas(self, dia, semana, modulo):
+        pass
+
+    def verificar_cupo_modulo(self, dia, semana, modulo):
+        pass
+
+
 class Paciente:
 
     def __init__(self, tipo):
         self.tipo = tipo
         self.fechas_programadas = False
         # tipo refiere al tipo de cancer
+        self.nombre = "sin nombre"
 
     def asignar_protocolo(self, lista):
         self.protocolo = lista
@@ -23,6 +44,8 @@ class Paciente:
 class Lista_pacientes:
     def __init__(self):
         self.pacientes = deque()
+
+
 
 
 class Pacientes_nuevos(Lista_pacientes):
@@ -48,12 +71,12 @@ def llegada_pacientes_semana(pacientes_nuevos):
 # tipo protocolo sera de la forma: (separacion de dias, 4 ),es decir,
 # lista de la separacion entre dias, y 4 semanas de duracion del tratamiento
 
-protocolo_1 = [2, 4]
+protocolo_1 = [2, 3, 5, 6, 4] # [13, 3, 20]
 protocolo_2 = [2, 3]
 protocolo_3 = [1, 4]
 protocolo_4 = [3, 5]
 
-
+# necesito una lista con las duraciones de cada sesion, se diferencian por protocolo
 
 def disponibilidad_semana(semana_acutal, calendario):
     disponibilidad = False
@@ -107,8 +130,28 @@ def asignar_protocolo(paciente):
     elif paciente.tipo == 4:
         paciente.asignar_protocolo(protocolo_4)
 
+
+def asignar(semana_actual, calendario, paciente):
+    estado = disponibilidad_semana(semana_actual, calendario)
+    if estado[0]:
+        # asigno primer dia y le asigno un protocolo
+        for i in range(modulos_atencion):
+            calendario[semana_actual][estado[2]][estado[1] + i].append(paciente)
+
+        numero_dia_inicial = dias.index(estado[2])
+        if numero_dia_inicial + paciente.protocolo[0] < 6 and disponibilidad_dia(estado[1],
+                                                                                 semana_actual,
+                                                                                 calendario)[0]:
+            nuevo_dia = disponibilidad_dia(estado[1], semana_actual, calendario)
+            for i in range(modulos_atencion):
+                calendario[semana_actual][nuevo_dia[1]][nuevo_dia[2] + i].append(paciente)
+
+                
 def simular_semana(pacientes_en_espera, pacientes_agendados, pacientes_rechazados, calendario, semana_actual):
     semana_actual = semana_actual
+    print(semana_actual)
+    for i in pacientes_agendados.pacientes:
+        asignar(semana_actual, calendario, i)
     while len(pacientes_en_espera.pacientes) != 0:
         paciente = pacientes_en_espera.pacientes.popleft()
         estado = disponibilidad_semana(semana_actual, calendario)
@@ -126,16 +169,30 @@ def simular_semana(pacientes_en_espera, pacientes_agendados, pacientes_rechazado
                 for i in range(modulos_atencion):
                     calendario[semana_actual][nuevo_dia[1]][nuevo_dia[2] + i].append(paciente)
             pacientes_agendados.pacientes.append(paciente)
+        elif estado[0] == False:
+            pacientes_rechazados.pacientes.append(paciente)
+
+
+
+
+
 
 
 if __name__ == "__main__":
-    espera = Pacientes_nuevos()
-    agendados = Pacientes_agendados()
-    rechazados = Pacientes_rechazados()
-    semana_acutal = 0
-    # desde aca abajo se simularia por semana
-    llegada_pacientes_semana(espera)
-    simular_semana(espera, agendados, rechazados, calendario, semana_acutal)
-    
+    nuevo_calendario = Calendario(calendario)
+    #espera = Pacientes_nuevos()
+    #agendados = Pacientes_agendados()
+    #rechazados = Pacientes_rechazados()
+    #semana_actual = 0
+    #llegada_pacientes_semana(espera)
+    #simular_semana(espera, agendados, rechazados, calendario, semana_actual)
+    #desde aca abajo se simularia por semana
+    #for i in range(1, 5):
+     #  llegada_pacientes_semana(espera)
+     #  simular_semana(espera, agendados, rechazados, calendario, semana_actual)
+      # semana_actual += 1
 
 
+    #for i in calendario[0]["lunes"]:
+     #   if len(calendario[0]["lunes"][i]) == 0:
+      #      print(f"en el modulo {i} no hay pacientes")
