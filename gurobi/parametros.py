@@ -2,8 +2,9 @@ from gurobipy import *
 
 import numpy as np
 
-
-# Conjuntos
+#############
+# CONJUNTOS #
+#############
 
 contador_de_columnas = 1
 
