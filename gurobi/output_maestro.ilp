@@ -1,0 +1,10 @@
+\ Model Asignacion_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+Minimize
+ 
+Subject To
+ R0: 0.01 Columna_ingresada[1] = 1
+ R25: - 0.99 Columna_ingresada[1] >= 0
+Bounds
+ Columna_ingresada[1] free
+End

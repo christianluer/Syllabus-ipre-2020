@@ -372,7 +372,8 @@ R3 = {}
 # Para todo protocolo p
 for p in P:
 
-    R3[p] = model.addConstr((r[p] == z[p] + quicksum(x[p,d] for d in Lp)), name="Conservacion de flujo")
+    R3[p] = model.addConstr((r[p] == z[p] + quicksum(x[p,d] for d in Lp)), 
+        name="Conservacion de flujo")
 
 
 # Restricción 4 
@@ -396,7 +397,8 @@ for p in P:
                 # Condición: termino en mismo día
                 if m_index + M_sp[p][s] - 1 <= BR + BE:
 
-                    R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m_index - M_sp[p][s] - 1]], name="Definicion u [%s, %s, %s, %s]"%(p,s,t,m))
+                    R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m_index - M_sp[p][s] - 1]],
+                        name="Definicion u [%s, %s, %s, %s]"%(p,s,t,m))
 
 
 # RESTRICCIÓN 5
@@ -447,7 +449,8 @@ for p in P:
                 # Condicion para evitar exponente igual a 0
                 if t_index + 7 >= K_ps[p][int(s)-1]:
 
-                    R7[p,s,t] = model.addConstr(w_prima[p,s,t] == w[p,s,T[t_index-K_ps[p][int(s)-1]+7]] + x[p,T[t_index+7]],
+                    R7[p,s,t] = model.addConstr(w_prima[p,s,t] == 
+                        w[p,s,T[t_index-K_ps[p][int(s)-1]+7]] + x[p,T[t_index+7]],
                                  name="Definición w'")
 
 
@@ -484,7 +487,8 @@ for p in P:
                 # Condición de avance de sesiones
                 if t_index + 1 >= K_ps[p][int(s)-1]:
 
-                    R19[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t_index+7]] + x[p,T[t_index+7]]), name="Definicion ω")
+                    R19[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t_index+7]] 
+                        + x[p,T[t_index+7]]), name="Definicion ω")
 
 
 # RESTRICCIÓN 20

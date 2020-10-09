@@ -9,10 +9,18 @@ dias = ["lunes", "martes", "miercoles", "jueves","viernes", "sabado"]
 calendario = defaultdict(defaultdict)
 semana = defaultdict(defaultdict)
 modulo = defaultdict(list)
-for i in range(1, 41):
+asiento = defaultdict(defaultdict)
+
+
+
+for i in range(1, 41):#numero modulos
     modulo[i] = []
+
+for i in range(1, 15):
+    asiento[i] = modulo
+
 for i in dias:
-    semana[i] = modulo
+    semana[i] = asiento
 
 
 for i in range(semanas_de_simulacion):
