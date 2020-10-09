@@ -45,11 +45,11 @@ CR = 100 # Costo hora regular
 
 CM = (CE - CR)/4 # Costo marginal por bloque extra de atención #???
 
-K_ps = {1: [0,1,2,5,6,7,12,13,14], 2: [0,1,8,9,16,18], 3: [0,2,4,6,8,10,12,14]} 
+K_ps = {1: [0,1,2,5,6,7,13,14,15], 2: [0,1,8,9,16,18], 3: [0,2,4,6,8,10,12,14]} 
 # Días desde que un paciente con protocolo p inicia su tratamiento hasta que está en la sesión s 
 #quizas deberíamos ocupar los mismos que en el pricing
 
-M_ps = {1: [2,2,2,4,4,4,2,2,2], 2: [22,22,22,22,22,18], 3: [12,8,12,8,12,8,12,8]} 
+M_ps = {1: [2,2 ,2,4,4,4,2,2,2], 2: [22,22,22,22,22,18], 3: [12,8,12,8,12,8,12,8]} 
 # Corresponde a la duración en módulos de la sesión s del protocolo p
 
 gamma = 0.99
@@ -192,7 +192,7 @@ z_p_dada[1] = 5
 z_p_dada[2] = 3
 
 z_p_dada[3] = 4
-
+#No debeían ser 0?
 
 # Variable de estado X-p,t
 # Cantidad de pacientes con protocolo p con sesión agendada en día t
