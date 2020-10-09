@@ -102,8 +102,9 @@ for i in P:
     for j in S[i]:
 
         M_sp[i].update({j:Modulos.pop(0)})
-
 # PARA ESTE EJEMPLO: toda sesión en todo protocolo usa 5 módulos
+#USANDO EL DEL MAIN
+#M_sp = {'1': {'1': 2, '2': 2, '3': 2, '4': 4, '5': 4, '6': 4, '7': 2, '8': 2, '9': 2}, '2': {'1': 22, '2': 22, '3': 22, '4': 22, '5': 22, '6': 18}, '3': {'1': 12, '2': 8, '3': 12, '4': 8, '5': 12, '6': 8, '7': 12, '8': 8}}
 
 
 # Bloques regulares efectivos
@@ -125,7 +126,7 @@ Lp_list = [5,5,5]
 Lp = {}
 for i in P:
       Lp.update({i:{Lp_list.pop(0)}})
-print(Lp)
+
 
 
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
@@ -143,6 +144,9 @@ for i in P:
   K_ps.update({i:[k for k in range(1,Largo_P[int(i)-1] + 1)]})
 
 # PARA ESTE EJEMPLO: sesiones consecutivas
+
+#USANDO EL DEL MAIN
+#K_ps = {'1': [0,1,2,5,6,7,13,14,15]], '2': [0,1,8,9,16,18],'3':[0,2,4,6,8,10,12,14]} #Si ocupo este me tira out of range
 
 
 model = Model("Asignacion")
