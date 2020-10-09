@@ -104,10 +104,12 @@ for i in P:
         M_sp[i].update({j:Modulos.pop(0)})
 # PARA ESTE EJEMPLO: toda sesión en todo protocolo usa 5 módulos
 #USANDO EL DEL MAIN
+#ver forma de incorporarlo
+
 #M_sp = {'1': {'1': 2, '2': 2, '3': 2, '4': 4, '5': 4, '6': 4, '7': 2, '8': 2, '9': 2}, '2': {'1': 22, '2': 22, '3': 22, '4': 22, '5': 22, '6': 18}, '3': {'1': 12, '2': 8, '3': 12, '4': 8, '5': 12, '6': 8, '7': 12, '8': 8}}
 
 
-# Bloques regulares efectivos
+# Bloques regulares efectivos 
 # Jornada de 8 horas
 
 BR = 32 
