@@ -27,7 +27,7 @@ S = {1: [0,1,2,3,4,5,6,7,8], 2: [0,1,2,3,4,5], 3: [0,1,2,3,4,5,6,7]}
 
 # Parámetros utilizados en el modelo, modificables
 
-CD_p = [16800, 89600, 56000] # Costo derivación por protocolo (también están distintos a los del pricing)
+CD_p = [1, 1, 1] # Costo derivación por protocolo (también están distintos a los del pricing)
 
 BR = 32 # Bloques regulares efectivos
 # Jornada de 8 horas
@@ -81,79 +81,79 @@ for p in P:
 
 #Valores iniciales
 
-w_pst_dada[1,1,1]=3
+w_pst_dada[1,1,1]=0
 
-w_pst_dada[2,1,1]=1
+w_pst_dada[2,1,1]=0
 
-w_pst_dada[3,1,1]=2
+w_pst_dada[3,1,1]=0
 
-w_pst_dada[2,1,2]=1
+w_pst_dada[2,1,2]=0
 
-w_pst_dada[1,2,2]=3
+w_pst_dada[1,2,2]=0
 
-w_pst_dada[2,2,2]=1
+w_pst_dada[2,2,2]=0
 
-w_pst_dada[1,1,3]=1
+w_pst_dada[1,1,3]=0
 
-w_pst_dada[1,3,3]=3
+w_pst_dada[1,3,3]=0
 
-w_pst_dada[3,2,3]=2
+w_pst_dada[3,2,3]=0
 
-w_pst_dada[2,2,3]=1
+w_pst_dada[2,2,3]=0
 
-w_pst_dada[1,2,4]=1
+w_pst_dada[1,2,4]=0
 
-w_pst_dada[1,1,5]=1
+w_pst_dada[1,1,5]=0
 
-w_pst_dada[1,3,5]=1
+w_pst_dada[1,3,5]=0
 
-w_pst_dada[2,1,5]=1
+w_pst_dada[2,1,5]=0
 
-w_pst_dada[3,3,5]=2
+w_pst_dada[3,3,5]=0
 
-w_pst_dada[1,2,6]=1
+w_pst_dada[1,2,6]=0
 
-w_pst_dada[1,4,6]=3
+w_pst_dada[1,4,6]=0
 
-w_pst_dada[2,2,6]=1
+w_pst_dada[2,2,6]=0
 
-w_pst_dada[1,3,7]=1
+w_pst_dada[1,3,7]=0
 
-w_pst_dada[1,5,7]=3
+w_pst_dada[1,5,7]=0
 
-w_pst_dada[2,1,7]=1
+w_pst_dada[2,1,7]=0
 
-w_pst_dada[3,4,7]=2
+w_pst_dada[3,4,7]=0
 
-w_pst_dada[1,4,8]=1
+w_pst_dada[1,4,8]=0
 
-w_pst_dada[1,6,8]=3
+w_pst_dada[1,6,8]=0
 
-w_pst_dada[2,2,8]=1
+w_pst_dada[2,2,8]=0
 
-w_pst_dada[1,5,9]=1
+w_pst_dada[1,5,9]=0
 
-w_pst_dada[2,3,9]=1
+w_pst_dada[2,3,9]=0
 
-w_pst_dada[3,5,9]=2
+w_pst_dada[3,5,9]=0
 
-w_pst_dada[1,4,10]=1
+w_pst_dada[1,4,10]=0
 
-w_pst_dada[1,6,10]=1
+w_pst_dada[1,6,10]=0
 
-w_pst_dada[2,3,10]=1
+w_pst_dada[2,3,10]=0
 
-w_pst_dada[2,4,10]=1
+w_pst_dada[2,4,10]=0
 
-w_pst_dada[1,5,11]=1
+w_pst_dada[1,5,11]=0
 
-w_pst_dada[2,4,11]=1
+w_pst_dada[2,4,11]=0
 
-w_pst_dada[3,6,11]=2
+w_pst_dada[3,6,11]=0
 
-w_pst_dada[1,6,12]=1
+w_pst_dada[1,6,12]=0
 
-w_pst_dada[3,1,12]=2
+w_pst_dada[3,1,12]=0
 
 
 # Variable de estado R-p
@@ -208,23 +208,23 @@ for p in P:
 
 # Valores Iniciales
 
-x_pt_dada[1,1] = 3
+x_pt_dada[1,1] = 0
 
-x_pt_dada[2,1] = 1
+x_pt_dada[2,1] = 0
 
-x_pt_dada[3,1] = 2
+x_pt_dada[3,1] = 0
 
-x_pt_dada[2,2] = 1
+x_pt_dada[2,2] = 0
 
-x_pt_dada[1,3] = 1
+x_pt_dada[1,3] = 0
 
-x_pt_dada[1,5] = 1
+x_pt_dada[1,5] = 0
 
-x_pt_dada[2,5] = 1
+x_pt_dada[2,5] = 0
 
-x_pt_dada[2,7] = 1
+x_pt_dada[2,7] = 0
 
-x_pt_dada[3,12] = 2
+x_pt_dada[3,12] =0
 
 
 # Variable de estado Y-p,t,s,m
@@ -263,222 +263,222 @@ for p in P:
 
 # Valores Iniciales
 
-y_pstm_dada[1,1,1,1] = 1
+y_pstm_dada[1,1,1,1] =  0
 
-y_pstm_dada[1,1,1,3] = 1
+y_pstm_dada[1,1,1,3] =  0
 
-y_pstm_dada[1,1,1,5] = 1
+y_pstm_dada[1,1,1,5] =  0
 
-y_pstm_dada[2,1,1,7] = 1
+y_pstm_dada[2,1,1,7] =  0
 
-y_pstm_dada[3,1,1,29] = 1
+y_pstm_dada[3,1,1,29] = 0
 
-u_pstm_dada[1,1,1,2] = 1
+u_pstm_dada[1,1,1,2] =  0
 
-u_pstm_dada[1,1,1,4] = 1
+u_pstm_dada[1,1,1,4] =  0
 
-u_pstm_dada[1,1,1,6] = 1
+u_pstm_dada[1,1,1,6] =  0
 
-u_pstm_dada[2,1,1,28] = 1
+u_pstm_dada[2,1,1,28] = 0
 
-u_pstm_dada[3,1,1,52] = 1
+u_pstm_dada[3,1,1,52] = 0
 
-y_pstm_dada[1,2,2,1] = 1
+y_pstm_dada[1,2,2,1] =  0
 
-y_pstm_dada[1,2,2,3] = 1
+y_pstm_dada[1,2,2,3] =  0
 
-y_pstm_dada[1,2,2,5] = 1
+y_pstm_dada[1,2,2,5] =  0
 
-y_pstm_dada[2,2,2,7] = 1
+y_pstm_dada[2,2,2,7] =  0
 
-y_pstm_dada[2,2,2,29] = 1
+y_pstm_dada[2,2,2,29] = 0
 
-u_pstm_dada[1,2,2,2] = 1
+u_pstm_dada[1,2,2,2] =  0
 
-u_pstm_dada[1,2,2,4] = 1
+u_pstm_dada[1,2,2,4] =  0
 
-u_pstm_dada[1,2,2,6] = 1
+u_pstm_dada[1,2,2,6] =  0
 
-u_pstm_dada[2,2,2,28] = 1
+u_pstm_dada[2,2,2,28] = 0
 
-u_pstm_dada[2,2,2,50] = 1
+u_pstm_dada[2,2,2,50] = 0
 
-y_pstm_dada[1,3,3,1] = 1
+y_pstm_dada[1,3,3,1] =  0
 
-y_pstm_dada[1,3,3,3] = 1
+y_pstm_dada[1,3,3,3] =  0
 
-y_pstm_dada[1,3,3,5] = 1
+y_pstm_dada[1,3,3,5] =  0
 
-y_pstm_dada[1,1,3,45] = 1
+y_pstm_dada[1,1,3,45] = 0
 
-y_pstm_dada[2,2,3,23] = 1
+y_pstm_dada[2,2,3,23] = 0
 
-y_pstm_dada[3,2,3,7] = 1
+y_pstm_dada[3,2,3,7] =  0
 
-y_pstm_dada[3,2,3,15] = 1
+y_pstm_dada[3,2,3,15] = 0
 
-u_pstm_dada[1,3,3,2] = 1
+u_pstm_dada[1,3,3,2] =  0
 
-u_pstm_dada[1,3,3,4] = 1
+u_pstm_dada[1,3,3,4] =  0
 
-u_pstm_dada[1,3,3,6] = 1
+u_pstm_dada[1,3,3,6] =  0
 
-u_pstm_dada[1,1,3,46] = 1
+u_pstm_dada[1,1,3,46] = 0
 
-u_pstm_dada[2,2,3,44] = 1
+u_pstm_dada[2,2,3,44] = 0
 
-u_pstm_dada[3,2,3,14] = 1
+u_pstm_dada[3,2,3,14] = 0
 
-u_pstm_dada[3,2,3,22] = 1
+u_pstm_dada[3,2,3,22] = 0
 
-y_pstm_dada[1,2,4,1] = 1
+y_pstm_dada[1,2,4,1] =  0
 
-u_pstm_dada[1,2,4,2] = 1
+u_pstm_dada[1,2,4,2] =  0
 
-y_pstm_dada[1,1,5,27] = 1
+y_pstm_dada[1,1,5,27] = 0
 
-y_pstm_dada[1,3,5,25] = 1
+y_pstm_dada[1,3,5,25] = 0
 
-y_pstm_dada[2,1,5,29] = 1
+y_pstm_dada[2,1,5,29] = 0
 
-y_pstm_dada[3,3,5,1] = 1
+y_pstm_dada[3,3,5,1] =  0
 
-y_pstm_dada[3,3,5,13] = 1
+y_pstm_dada[3,3,5,13] = 0
 
-u_pstm_dada[1,1,5,28] = 1
+u_pstm_dada[1,1,5,28] = 0
 
-u_pstm_dada[1,3,5,26] = 1
+u_pstm_dada[1,3,5,26] = 0
 
-u_pstm_dada[2,1,5,50] = 1
+u_pstm_dada[2,1,5,50] = 0
 
-u_pstm_dada[3,3,5,12] = 1
+u_pstm_dada[3,3,5,12] = 0
 
-u_pstm_dada[3,3,5,14] = 1
+u_pstm_dada[3,3,5,14] = 0
 
-y_pstm_dada[1,2,6,13] = 1
+y_pstm_dada[1,2,6,13] = 0
 
-y_pstm_dada[1,4,6,1] = 1
+y_pstm_dada[1,4,6,1] =  0
 
-y_pstm_dada[1,4,6,5] = 1
+y_pstm_dada[1,4,6,5] =  0
 
-y_pstm_dada[1,4,6,9] = 1
+y_pstm_dada[1,4,6,9] =  0
 
-y_pstm_dada[2,2,6,15] = 1
+y_pstm_dada[2,2,6,15] = 0
 
-u_pstm_dada[1,2,6,14] = 1
+u_pstm_dada[1,2,6,14] = 0
 
-u_pstm_dada[1,4,6,4] = 1
+u_pstm_dada[1,4,6,4] =  0
 
-u_pstm_dada[1,4,6,8] = 1
+u_pstm_dada[1,4,6,8] =  0
 
-u_pstm_dada[1,4,6,12] = 1
+u_pstm_dada[1,4,6,12] = 0
 
-u_pstm_dada[2,2,6,46] = 1
+u_pstm_dada[2,2,6,46] = 0
 
-y_pstm_dada[1,5,7,1] = 1
+y_pstm_dada[1,5,7,1] =  0
 
-y_pstm_dada[1,5,7,5] = 1
+y_pstm_dada[1,5,7,5] =  0
 
-y_pstm_dada[1,5,7,9] = 1
+y_pstm_dada[1,5,7,9] =  0
 
-y_pstm_dada[1,3,7,29] = 1
+y_pstm_dada[1,3,7,29] = 0
 
-y_pstm_dada[2,1,7,31] = 1
+y_pstm_dada[2,1,7,31] = 0
 
-y_pstm_dada[3,4,7,13] = 1
+y_pstm_dada[3,4,7,13] = 0
 
-y_pstm_dada[3,4,7,21] = 1
+y_pstm_dada[3,4,7,21] = 0
 
-u_pstm_dada[1,5,7,4] = 1
+u_pstm_dada[1,5,7,4] =  0
 
-u_pstm_dada[1,5,7,8] = 1
+u_pstm_dada[1,5,7,8] =  0
 
-u_pstm_dada[1,5,7,12] = 1
+u_pstm_dada[1,5,7,12] = 0
 
-u_pstm_dada[1,3,7,30] = 1
+u_pstm_dada[1,3,7,30] = 0
 
-u_pstm_dada[2,1,7,52] = 1
+u_pstm_dada[2,1,7,52] = 0
 
-u_pstm_dada[3,4,7,20] = 1
+u_pstm_dada[3,4,7,20] = 0
 
-u_pstm_dada[3,4,7,28] = 1
+u_pstm_dada[3,4,7,28] = 0
 
-y_pstm_dada[1,4,8,13] = 1
+y_pstm_dada[1,4,8,13] = 0
 
-y_pstm_dada[1,6,8,1] = 1
+y_pstm_dada[1,6,8,1] =  0
 
-y_pstm_dada[1,6,8,5] = 1
+y_pstm_dada[1,6,8,5] =  0
 
-y_pstm_dada[1,6,8,9] = 1
+y_pstm_dada[1,6,8,9] =  0
 
-y_pstm_dada[2,2,8,17] = 1
+y_pstm_dada[2,2,8,17] = 0
 
-u_pstm_dada[1,4,8,16] = 1
+u_pstm_dada[1,4,8,16] = 0
 
-u_pstm_dada[1,6,8,4] = 1
+u_pstm_dada[1,6,8,4] =  0
 
-u_pstm_dada[1,6,8,8] = 1
+u_pstm_dada[1,6,8,8] =  0
 
-u_pstm_dada[1,6,8,12] = 1
+u_pstm_dada[1,6,8,12] = 0
 
-u_pstm_dada[2,2,8,38] = 1
+u_pstm_dada[2,2,8,38] = 0
 
-y_pstm_dada[1,5,9,47] = 1
+y_pstm_dada[1,5,9,47] = 0
 
-y_pstm_dada[2,3,9,1] = 1
+y_pstm_dada[2,3,9,1] =  0
 
-y_pstm_dada[3,5,9,23] = 1
+y_pstm_dada[3,5,9,23] = 0
 
-y_pstm_dada[3,5,9,31] = 1
+y_pstm_dada[3,5,9,31] = 0
 
-u_pstm_dada[1,5,9,50] = 1
+u_pstm_dada[1,5,9,50] = 0
 
-u_pstm_dada[2,3,9,22] = 1
+u_pstm_dada[2,3,9,22] = 0
 
-u_pstm_dada[3,5,9,30] = 1
+u_pstm_dada[3,5,9,30] = 0
 
-u_pstm_dada[3,5,9,38] = 1
+u_pstm_dada[3,5,9,38] = 0
 
-y_pstm_dada[1,4,10,49] = 1
+y_pstm_dada[1,4,10,49] = 0
 
-y_pstm_dada[1,6,10,45] = 1
+y_pstm_dada[1,6,10,45] = 0
 
-y_pstm_dada[2,4,10,1] = 1
+y_pstm_dada[2,4,10,1] = 0
 
-y_pstm_dada[2,3,10,23] = 1
+y_pstm_dada[2,3,10,23] = 0
 
-u_pstm_dada[1,4,10,52] = 1
+u_pstm_dada[1,4,10,52] = 0
 
-u_pstm_dada[1,6,10,48] = 1
+u_pstm_dada[1,6,10,48] = 0
 
-u_pstm_dada[2,4,10,22] = 1
+u_pstm_dada[2,4,10,22] = 0
 
-u_pstm_dada[2,3,10,44] = 1
+u_pstm_dada[2,3,10,44] = 0
 
-y_pstm_dada[1,5,11,39] = 1
+y_pstm_dada[1,5,11,39] = 0
 
-y_pstm_dada[2,4,11,17] = 1
+y_pstm_dada[2,4,11,17] = 0
 
-y_pstm_dada[3,6,11,1] = 1
+y_pstm_dada[3,6,11,1] = 0
 
-y_pstm_dada[3,6,11,9] = 1
+y_pstm_dada[3,6,11,9] = 0
 
-u_pstm_dada[1,5,11,42] = 1
+u_pstm_dada[1,5,11,42] = 0
 
-u_pstm_dada[2,4,11,38] = 1
+u_pstm_dada[2,4,11,38] = 0
 
-u_pstm_dada[3,6,11,8] = 1
+u_pstm_dada[3,6,11,8] = 0
 
-u_pstm_dada[3,6,11,16] = 1
+u_pstm_dada[3,6,11,16] = 0
 
-y_pstm_dada[1,6,12,1] = 1
+y_pstm_dada[1,6,12,1] = 0
 
-y_pstm_dada[3,1,12,5] = 1
+y_pstm_dada[3,1,12,5] = 0
 
-y_pstm_dada[3,1,12,17] = 1
+y_pstm_dada[3,1,12,17] = 0
 
-u_pstm_dada[1,6,12,4] = 1
+u_pstm_dada[1,6,12,4] = 0
 
-u_pstm_dada[3,1,12,16] = 1
+u_pstm_dada[3,1,12,16] = 0
 
-u_pstm_dada[3,1,12,28] = 1
+u_pstm_dada[3,1,12,28] = 0
