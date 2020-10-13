@@ -60,7 +60,9 @@ NS = 20
 
 # Duraciones de cada sesion
 
+
 # Bloques regulares efectivos
+
 # Jornada de 8 horas
 
 # Bloques extra efectivos
@@ -71,6 +73,7 @@ NS = 20
 Lp = {}
 for i in P:
       Lp.update({i: [k for k in range(5)] })
+
 
 
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
@@ -84,6 +87,9 @@ for i in P:
   K_ps.update({i:[k for k in range(1,Largo_P[int(i)-1] + 1)]})
 
 # PARA ESTE EJEMPLO: sesiones consecutivas
+
+#USANDO EL DEL MAIN
+#K_ps = {'1': [0,1,2,5,6,7,13,14,15]], '2': [0,1,8,9,16,18],'3':[0,2,4,6,8,10,12,14]} #Si ocupo este me tira out of range
 
 
 model = Model("Asignacion")

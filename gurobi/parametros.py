@@ -58,6 +58,7 @@ CE = 200
 
 CM = (CE - CR)/4 # Costo marginal por bloque extra de atención #???
 
+
 # Cantidad de modulos de la sesion s del tratamiento p
 
 M_sp = {} 
