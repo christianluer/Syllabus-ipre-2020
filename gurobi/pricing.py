@@ -4,6 +4,8 @@ from openpyxl import load_workbook
 
 from gurobipy import *
 
+from parametros import *
+
 
 # datos = load_workbook(filename="libro.xlsx",data_only=True)
 
@@ -29,40 +31,18 @@ from gurobipy import *
 T = [str(k) for k in range(1,7)] 
 # 6 dias - 1, 2, ..., 6
 
-# PROTOCOLOS
+# PROTOCOLOS - usaba string en los k
 
-P = [str(k) for k in range(1,4)] 
-# 3 protocolos - 1, 2, 3
+# SESIONES - usaba string en los k
 
-Largo_P = [9, 6, 8] 
-# Duracion de cada protocolo en sesiones
-
-
-# SESIONES
-
-# Sesiones del protocolo p
-
-S = {} 
-
-for i in P:
-
-  S.update({i:[str(k) for k in range(1,Largo_P[int(i)-1] + 1)]})
-
-
-# MÓDULOS
-
-M = [str(k) for k in range(1,41)] 
-# 40 bloques - 1, 2, ..., 40 
-# 10 horas de trabajo, cada modulo consiste en 15 min
+# MÓDULOS - usaba string en k
 
 
 ##############
 # PARÁMETROS #
 ##############
 
-# Variable GAMMA - factor de penalización para la minimziación
-
-γ = 0.95
+# Variable GAMMA
 
 # Número de enfermeras
 
@@ -74,65 +54,26 @@ NS = 20
 
 # Costos por protocolo
 
-Costos = [0.03,0.02,0.01] #porque son estos???
-
-CD = dict(zip(P,Costos)) 
-# Asocia los costos cada protocolo con su costo de derivación
-
 # Costo bloque regular
-
-CR = 1
 
 # Costo bloque extra
 
-CE = 2
-
 # Duraciones de cada sesion
-
-Modulos = [5 for k in range(1,24)] 
-
-# Cantidad de modulos de la sesion s del tratamiento p
-
-M_sp = {} 
-
-for i in P:
-
-    M_sp.update({i:{}})
-
-    for j in S[i]:
-
-        M_sp[i].update({j:Modulos.pop(0)})
-
-# PARA ESTE EJEMPLO: toda sesión en todo protocolo usa 5 módulos
-
 
 # Bloques regulares efectivos
 # Jornada de 8 horas
 
-BR = 32 
-
-
 # Bloques extra efectivos
 # 1,5 horas
 
-BE = 9 
-
-
 # Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
-
-Lp_list = [5,5,5]
 
 Lp = {}
 for i in P:
-      Lp.update({i:{Lp_list.pop(0)}})
-print(Lp)
+      Lp.update({i: [k for k in range(5)] })
 
 
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
-
-lambdas = [5, 4, 3] 
-q = dict(zip(P,np.random.poisson(lambdas)))
-
 
 # k_ps indica la distancia en dias desde s=s hasta s= 1 del protocolo p
 
@@ -368,8 +309,10 @@ R3 = {}
 # Para todo protocolo p
 for p in P:
 
-    R3[p] = model.addConstr((r[p] == z[p] + quicksum(x[p,d] for d in Lp)), 
+    R3[p] = model.addConstr( (r[p] == z[p] + quicksum(x[p, str(d+1)] for d in Lp[p]) ), 
         name="Conservacion de flujo")
+
+# Funciona sólo con el tiempo en string, no entiendo
 
 
 # Restricción 4 
