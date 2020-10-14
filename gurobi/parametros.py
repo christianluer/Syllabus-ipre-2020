@@ -23,7 +23,7 @@ S = {}
 for i in P:
 
   S.update({i:[k for k in range(1,Largo_P[int(i)-1] + 1)]})
-print(S)
+
 
 # MÓDULOS - maestro usaba 53
 
