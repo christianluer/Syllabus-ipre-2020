@@ -23,7 +23,7 @@ S = {}
 for i in P:
 
   S.update({i:[k for k in range(1,Largo_P[int(i)-1] + 1)]})
-
+print(S)
 
 # MÓDULOS - maestro usaba 53
 
@@ -90,5 +90,11 @@ BE2 = [k for k in range(1, 13)] # Bloques extra nominales
 
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
 
-lambdas = [5, 4, 3] 
+lambdas = [5, 4, 3] ##lambdas derbería coincidir con las llegadas
 q = dict(zip(P,np.random.poisson(lambdas)))
+
+
+
+
+
+
