@@ -90,7 +90,7 @@ BE2 = [k for k in range(1, 13)] # Bloques extra nominales
 
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
 
-lambdas = [5, 4, 3] ##lambdas derbería coincidir con las llegadas
+lambdas = [5, 3, 4] ##lambdas derbería coincidir con las llegadas
 q = dict(zip(P,np.random.poisson(lambdas)))
 
 
