@@ -201,7 +201,7 @@ r_prima = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="r_prima[%s]"%(p))
 # x [p,t] 
 # Cantiad de protocolos -p- que inician su tratamiento el dia -t-
 
-x = model.addVars(P,T, lb=0.0, ub=NS, vtype=GRB.INTEGER, name="x[%s,%s]"%(p,t))
+x = model.addVars(P,T, lb=0.0, vtype=GRB.INTEGER, name="x[%s,%s]"%(p,t))
 
 
 # y [p,s,t,m] 
@@ -221,7 +221,7 @@ for p in P:
 # z [p]
 # Cantidad de protocolos -p- que son derivados a sistema privado
 
-z = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="z[%s]"%(p))
+z = model.addVars(P, lb=0, vtype=GRB.INTEGER, name="z[%s]"%(p))
 
 for p in P:
 
@@ -239,7 +239,7 @@ for p in P:
 
             for m in M:
 
-                u[p,s,t,m] = model.addVar(0,vtype=GRB.INTEGER, name="u[%s,%s,%s,%s]"%(p,s,t,m))
+                u[p,s,t,m] = model.addVar(lb=0,vtype=GRB.INTEGER, name="u[%s,%s,%s,%s]"%(p,s,t,m))
 
 
 #################
