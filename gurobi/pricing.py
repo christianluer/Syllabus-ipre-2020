@@ -130,7 +130,7 @@ for p in P:
 
         for t in T:
 
-            ω[p,s,t] = model.addVar(0,vtype=GRB.INTEGER, name="ω[%s,%s,%s]"%(p,s,t))
+            ω[p,s,t] = model.addVar(0,vtype=GRB.CONTINUOUS, name="ω[%s,%s,%s]"%(p,s,t))
 
 
 # Construcción de ρ p
@@ -139,7 +139,7 @@ for p in P:
 
 for p in P:
 
-    ρ[p] = model.addVar(0,vtype=GRB.INTEGER, name="ρ[%s]"%(p))
+    ρ[p] = model.addVar(0,vtype=GRB.CONTINUOUS, name="ρ[%s]"%(p))
 
 
 ##########
@@ -169,7 +169,7 @@ for p in P:
 
         for t in T:
 
-            w[p,s,t] = model.addVar(0,vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
+            w[p,s,t] = model.addVar(lb=0,vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
 
 
 for p in P:
@@ -178,7 +178,7 @@ for p in P:
 
         for t in T:
 
-            w_prima[p,s,t] = model.addVar(0,vtype=GRB.INTEGER, name="w_prima[%s,%s,%s]"%(p,s,t))
+            w_prima[p,s,t] = model.addVar(lb=0,vtype=GRB.INTEGER, name="w_prima[%s,%s,%s]"%(p,s,t))
 
 # w[p,s,t] = model.addVar(P, S, T, lb=0.0, vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
 
@@ -201,7 +201,7 @@ r_prima = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="r_prima[%s]"%(p))
 # x [p,t] 
 # Cantiad de protocolos -p- que inician su tratamiento el dia -t-
 
-x = model.addVars(P,T, lb=0.0, vtype=GRB.INTEGER, name="x[%s,%s]"%(p,t))
+x = model.addVars(P,T, lb=0.0, ub=NS, vtype=GRB.INTEGER, name="x[%s,%s]"%(p,t))
 
 
 # y [p,s,t,m] 
@@ -279,7 +279,7 @@ for t in T:
 
      for p in P for s in S[p] if int(t) >= K_ps[p][int(s)-1]) + quicksum(w[p,s,t] * M_sp[p][s]\
 
-     for p in P for s in S[p] if int(t) >= K_ps[p][int(s)-1]) <= 40, name="Capacidad bloques[%s]" %t)
+     for p in P for s in S[p] if int(t) >= K_ps[p][int(s)-1]) <= BR + BE, name="Capacidad bloques[%s]" %t)
 
 
 # RESTRICCIÓN 2
