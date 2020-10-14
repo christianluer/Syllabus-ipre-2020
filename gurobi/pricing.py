@@ -30,7 +30,7 @@ from parametros import *
 
 T = [str(k) for k in range(1,7)] 
 # 6 dias - 1, 2, ..., 6
-
+#porque T ESTA CON STRING???
 # PROTOCOLOS - usaba string en los k
 
 # SESIONES - usaba string en los k
