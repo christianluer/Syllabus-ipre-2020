@@ -15,7 +15,7 @@ T = [int(k) for k in range(1,13)]
 # 14 dias - 1, 2, ..., 13
 
 
-K_ps = {1: [0,1,2,5,6,7,12,13,14], 2: [0,1,8,9,16,18], 3: [0,2,4,6,8,10,12,14]} 
+#K_ps = {1: [0,1,2,5,6,7,12,13,14], 2: [0,1,8,9,16,18], 3: [0,2,4,6,8,10,12,14]} 
 # Días desde que un paciente con protocolo p inicia su tratamiento hasta que está en la sesión s 
 #quizas deberíamos ocupar los mismos que en el pricing
 
@@ -26,7 +26,7 @@ contador_de_columnas = 1
 
 C = [k for k in range(1, contador_de_columnas + 1)] # Número de columnas
 
-
+K_ps = {1: [0,1,2,5,6,7,12,13,14], 2: [0,1,8,9,16,18], 3: [0,2,4,6,8,10,12,14]} 
 ###################################
 # VARIABLES INICIALES ARBITRARIAS #
 ###################################
