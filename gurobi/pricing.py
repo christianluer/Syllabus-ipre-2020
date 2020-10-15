@@ -84,7 +84,7 @@ K_ps = {}
 
 for i in P:
 
-  K_ps.update({i:[k for k in range(1,Largo_P[int(i)-1] + 1)]})
+    K_ps.update({i:[k for k in range(1,Largo_P[int(i)-1] + 1)]})
 
 # PARA ESTE EJEMPLO: sesiones consecutivas
 
