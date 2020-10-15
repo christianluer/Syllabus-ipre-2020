@@ -94,7 +94,7 @@ lambdas = [5, 3, 4] ##lambdas derbería coincidir con las llegadas
 q = dict(zip(P,np.random.poisson(lambdas)))
 
 
-
+#K_ps = {1: [0,1,2,5,6,7,12,13,14], 2: [0,1,8,9,16,18], 3: [0,2,4,6,8,10,12,14]} 
 
 
 
