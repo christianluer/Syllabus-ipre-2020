@@ -80,16 +80,10 @@ for i in P:
 
 # k_ps indica la distancia en dias desde s=s hasta s= 1 del protocolo p
 
-K_ps = {} 
-
-for i in P:
-
-    K_ps.update({i:[k for k in range(1,Largo_P[int(i)-1] + 1)]})
-
 # PARA ESTE EJEMPLO: sesiones consecutivas
 
 #USANDO EL DEL MAIN
-#K_ps = {'1': [0,1,2,5,6,7,13,14,15]], '2': [0,1,8,9,16,18],'3':[0,2,4,6,8,10,12,14]} #Si ocupo este me tira out of range
+#Si ocupo este me tira out of range
 
 
 model = Model("Asignacion")
@@ -275,11 +269,11 @@ R1 = {}
 
 for t in T:
 
-    R1[t] = model.addConstr(quicksum(x[p,T[(int(t)-1)-K_ps[p][int(s)-1]+1]] * M_sp[p][s]\
+    R1[t] = model.addConstr(quicksum(x[p,T[(int(t)-1)-K_ps[p][s-1]+1]] * M_sp[p][s]\
 
-     for p in P for s in S[p] if int(t) >= K_ps[p][int(s)-1]) + quicksum(w[p,s,t] * M_sp[p][s]\
+     for p in P for s in S[p] if int(t) >= K_ps[p][s-1]) + quicksum(w[p,s,t] * M_sp[p][s]\
 
-     for p in P for s in S[p] if int(t) >= K_ps[p][int(s)-1]) <= BR + BE, name="Capacidad bloques[%s]" %t)
+     for p in P for s in S[p] if int(t) >= K_ps[p][s-1] ) <= BR + BE, name="Capacidad bloques[%s]" %t)
 
 
 # RESTRICCIÓN 2
@@ -298,7 +292,7 @@ for p in P:
         for t_index, t in enumerate(T):
 
             # Condicion para evitar exponente igual a 0
-            if t_index+1 >= K_ps[p][int(s)-1]:
+            if t_index+1 >= K_ps[p][s-1]:
 
                 R2[p,s,t] = model.addConstr(quicksum(y[p,s,t,m] for m in M) == x[p,T[t_index-K_ps[p][int(s)-1]+1]] + w[p,s,t]\
 
