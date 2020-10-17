@@ -31,7 +31,6 @@ M = [k for k in range(1,41)]
 # 40 bloques - 1, 2, ..., 40 
 # 10 horas de trabajo, cada modulo consiste en 15 min
 
-
 ##############
 # PARÁMETROS #
 ##############
@@ -90,11 +89,8 @@ BE2 = [k for k in range(1, 13)] # Bloques extra nominales
 
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
 
-lambdas = [5, 3, 4] ##lambdas derbería coincidir con las llegadas
+lambdas = [5, 3, 4] 
 q = dict(zip(P,np.random.poisson(lambdas)))
 
-
-#K_ps = {1: [0,1,2,5,6,7,12,13,14], 2: [0,1,8,9,16,18], 3: [0,2,4,6,8,10,12,14]} 
-
-
-
+T = [str(k) for k in range(1,7)] 
+K_ps = {1: [0,1,2,4,6,8,10,11,12], 2: [0,1,8,9,10,12], 3:[0,2,4,6,8,10,11,12]}
