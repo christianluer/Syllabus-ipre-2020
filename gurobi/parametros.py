@@ -55,7 +55,7 @@ CR = 100
 
 CE = 200 
 
-CM = (CE - CR)/4 # Costo marginal por bloque extra de atención #???
+CM = (CE - CR)/4 # Costo marginal por bloque extra de atención 
 
 
 # Cantidad de modulos de la sesion s del tratamiento p
@@ -92,5 +92,7 @@ BE2 = [k for k in range(1, 13)] # Bloques extra nominales
 lambdas = [5, 3, 4] 
 q = dict(zip(P,np.random.poisson(lambdas)))
 
-T = [str(k) for k in range(1,7)] 
-K_ps = {1: [0,1,2,4,6,8,10,11,12], 2: [0,1,8,9,10,12], 3:[0,2,4,6,8,10,11,12]}
+#tiempo entre la sesion s y su primera sesion
+#escrita como diccionario para que no hayan errores en los indices
+K_ps = {1: {1: 0, 2: 1, 3: 2, 4: 4, 5: 6, 6: 8, 7: 10, 8: 11, 9: 12}, 2: {1: 0, 2: 1, 3: 8, 4: 9, 5: 10, 6: 12}, 3: {1: 0, 2: 2, 3: 4, 4: 6, 5: 8, 6: 10, 7: 11, 8: 12}}
+
