@@ -31,11 +31,6 @@ from parametros import *
 T = [str(k) for k in range(1,7)] 
 # 6 dias - 1, 2, ..., 6
 #porque T ESTA CON STRING???
-# PROTOCOLOS - usaba string en los k
-
-# SESIONES - usaba string en los k
-
-# MÓDULOS - usaba string en k
 
 
 ##############
@@ -52,38 +47,11 @@ NE = 5
 
 NS = 20 
 
-# Costos por protocolo
-
-# Costo bloque regular
-
-# Costo bloque extra
-
-# Duraciones de cada sesion
-
-
-# Bloques regulares efectivos
-
-# Jornada de 8 horas
-
-# Bloques extra efectivos
-# 1,5 horas
-
 # Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
 
 Lp = {}
 for i in P:
       Lp.update({i: [k for k in range(5)] })
-
-
-
-# Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
-
-# k_ps indica la distancia en dias desde s=s hasta s= 1 del protocolo p
-
-# PARA ESTE EJEMPLO: sesiones consecutivas
-
-#USANDO EL DEL MAIN
-#Si ocupo este me tira out of range
 
 
 model = Model("Asignacion")
@@ -164,6 +132,7 @@ for p in P:
         for t in T:
 
             w[p,s,t] = model.addVar(lb=0,vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
+
 
 
 for p in P:
@@ -269,11 +238,11 @@ R1 = {}
 
 for t in T:
 
-    R1[t] = model.addConstr(quicksum(x[p,T[(int(t)-1)-K_ps[p][s-1]+1]] * M_sp[p][s]\
+    R1[t] = model.addConstr(quicksum(x[p,T[(int(t)-1)-K_ps[p][s]+1]] * M_sp[p][s]\
 
-     for p in P for s in S[p] if int(t) >= K_ps[p][s-1]) + quicksum(w[p,s,t] * M_sp[p][s]\
+     for p in P for s in S[p] if int(t) >= K_ps[p][s]) + quicksum(w[p,s,t] * M_sp[p][s]\
 
-     for p in P for s in S[p] if int(t) >= K_ps[p][s-1] ) <= BR + BE, name="Capacidad bloques[%s]" %t)
+     for p in P for s in S[p] if int(t) >= K_ps[p][s])  <= BR + BE, name="Capacidad bloques[%s]" %t)
 
 
 # RESTRICCIÓN 2
@@ -294,7 +263,7 @@ for p in P:
             # Condicion para evitar exponente igual a 0
             if t_index+1 >= K_ps[p][s-1]:
 
-                R2[p,s,t] = model.addConstr(quicksum(y[p,s,t,m] for m in M) == x[p,T[t_index-K_ps[p][int(s)-1]+1]] + w[p,s,t]\
+                R2[p,s,t] = model.addConstr(quicksum(y[p,s,t,m] for m in M) == x[p,T[t_index-K_ps[p][s]+1]] + w[p,s,t]\
 
                 , name="Definicion y [%s, %s, %s]"%(p,s,t))
 
@@ -386,7 +355,7 @@ for p in P:
             if t_index + 7 <= len(T):
 
                 # Condicion para evitar exponente igual a 0
-                if t_index + 7 >= K_ps[p][int(s)-1]:
+                if t_index + 7 >= K_ps[p][s]:
 
                     R7[p,s,t] = model.addConstr(w_prima[p,s,t] == 
                         w[p,s,T[t_index-K_ps[p][int(s)-1]+7]] + x[p,T[t_index+7]],
