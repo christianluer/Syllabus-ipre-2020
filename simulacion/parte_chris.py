@@ -138,31 +138,6 @@ def asignar_protocolo(paciente):
         paciente.asignar_protocolo(protocolo_4)
 
 
-                
-def simular_semana(pacientes_en_espera, pacientes_agendados, pacientes_rechazados, calendario, semana_actual):
-    semana_actual = semana_actual
-    print(semana_actual)
-    for i in pacientes_agendados.pacientes:
-        asignar(semana_actual, calendario, i)
-    while len(pacientes_en_espera.pacientes) != 0:
-        paciente = pacientes_en_espera.pacientes.popleft()
-        estado = disponibilidad_semana(semana_actual, calendario)
-        if estado[0]:
-            # asigno primer dia y le asigno un protocolo
-            asignar_protocolo(paciente)
-            for i in range(modulos_atencion):
-                calendario[semana_actual][estado[2]][estado[1] + i].append(paciente)
-
-            numero_dia_inicial = dias.index(estado[2])
-            if numero_dia_inicial + paciente.protocolo[0] < 6 and disponibilidad_dia(estado[1],
-                                                                                     semana_actual,
-                                                                                     calendario)[0]:
-                nuevo_dia = disponibilidad_dia(estado[1], semana_actual, calendario)
-                for i in range(modulos_atencion):
-                    calendario[semana_actual][nuevo_dia[1]][nuevo_dia[2] + i].append(paciente)
-            pacientes_agendados.pacientes.append(paciente)
-        elif estado[0] == False:
-            pacientes_rechazados.pacientes.append(paciente)
 
 
 
