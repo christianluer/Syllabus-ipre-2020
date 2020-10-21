@@ -179,13 +179,19 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario):
         ## se me llenan los pacientes en espera, los ordeno
         espera.ordenar()
         ## reviso ahora mis prioridades de los que estaban agendados de la semana anterior
+        # antes de "limpiar" con el renovar cuenta pacientes, debo agendar la semana, tanto para los
+        # agendados como con los nuevos
+        # Falta agendar la semana nomas, aca puedo usar un for por los dias o directamente agendar
+        # todo en la semana altiro
+
+
         for k in range(8):## dias
+            # debo poner pasar un dia, para los pacientes, una funcion en el calendario
+            for i in pacientes_agendados.pacientes:
+                i.tiempo_desde_ultima_sesion += 1
             calendario.renovar_cuenta_pacientes(k, i)
             # politica de ahora, agendar por orden de importancia en el tipo de cancer
 
-            for i in pacientes_agendados:
-                for j in calendario[semana][dias[dia]]:
-                    pass
             # deberia agendarlos en sus dias, aca iria politica de que si hay pacientes nuevos que requieran tratamiento antes
             # ademas de ver lo de las enfermeras, ya se tiene una idea de como  hacerlo.
             # se harian listas sobre los dias que hay que agendar a los pacientes.
