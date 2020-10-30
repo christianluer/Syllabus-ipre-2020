@@ -28,30 +28,9 @@ from parametros import *
 
 # DÍAS
 
-T = [str(k) for k in range(1,7)] 
+T = [int(k) for k in range(1,7)] 
 # 6 dias - 1, 2, ..., 6
-#porque T ESTA CON STRING???
 
-
-##############
-# PARÁMETROS #
-##############
-
-# Variable GAMMA
-
-# Número de enfermeras
-
-NE = 5 
-
-# Número de sillas
-
-NS = 20 
-
-# Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
-
-Lp = {}
-for i in P:
-      Lp.update({i: [k for k in range(5)] })
 
 
 model = Model("Asignacion")
@@ -101,7 +80,7 @@ for p in P:
 
 for p in P:
 
-    ρ[p] = model.addVar(lb=0,vtype=GRB.CONTINUOUS, name="ρ[%s]"%(p))
+    ρ[p] = model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="ρ[%s]"%(p))
 # R20 acota
 
 ##########
@@ -109,26 +88,13 @@ for p in P:
 ##########
 
 
-w = {}
 
-w_prima = {}
-
-r = {}
-
-r_prima = {}
-
-x = {}
-
-y = {}
-
-z = {}
-
-u = {}
 
 
 #######################
 # VARIABLES DE ESTADO #
 #######################
+w = {}
 
 # w [p,s,t] 
 # Cantidad de protocolos -p- que tienen su sesion -s- en el día -t-
@@ -141,7 +107,9 @@ for p in P:
 
             w[p,s,t] = model.addVar(lb=0,vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
 
-# Como cota superior se propone número de sillas por número de bloques
+
+w_prima = {}
+
 
 for p in P:
 
@@ -151,20 +119,22 @@ for p in P:
 
             w_prima[p,s,t] = model.addVar(lb=0,vtype=GRB.INTEGER, name="w_prima[%s,%s,%s]"%(p,s,t))
 
-# w[p,s,t] = model.addVar(P, S, T, lb=0.0, vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
+
 
 
 # r [p]
 # Cantidad de pacientes en la semana del protocolo p
+r = {}
 
-#r = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="r[%s]"%(p))
 for p in P:
 
     r[p] = model.addVar(lb=0, vtype=GRB.INTEGER, name="r[%s]"%(p))
 
+
 # r_prima [p]
 
-#r_prima = model.addVars(P, lb=0.0, vtype=GRB.INTEGER, name="r_prima[%s]"%(p))
+r_prima = {}
+
 for p in P:
 
     r_prima[p] = model.addVar(lb=0,  vtype=GRB.INTEGER, name="r_prima[%s]"%(p))
@@ -177,7 +147,7 @@ for p in P:
 # x [p,t] 
 # Cantiad de protocolos -p- que inician su tratamiento el dia -t-
 
-#x = model.addVars(P,T, lb=0.0, vtype=GRB.INTEGER, name="x[%s,%s]"%(p,t))
+x = {}
 
 for p in P:
 
@@ -187,6 +157,7 @@ for p in P:
 
 # y [p,s,t,m] 
 # Cantidad de protocolos -p- que comienzan su sesion -s- en modulo -m- del dia -t-
+y = {}
 
 for p in P:
 
@@ -202,18 +173,18 @@ for p in P:
 # z [p]
 # Cantidad de protocolos -p- que son derivados a sistema privado
 
-#z = model.addVars(P, lb=0, vtype=GRB.INTEGER, name="z[%s]"%(p))
+z = {}
+
 for p in P:
 
     z[p] = model.addVar(lb=0, vtype=GRB.INTEGER, name="z[%s]"%(p))
 
-#for p in P:
-
-#    z[p] = 0
 
 
 # u [p,s,t,m] 
 # Cantidad de protocolos -p- que terminan su sesion -s- en el modulo -m- del dia -t-
+
+u = {}
 
 for p in P:
 
@@ -255,17 +226,12 @@ model.setObjective( (1 - γ) * β + quicksum(ω[p,s,t] * W[p,s,t] for p in P for
 R1 = {}
 
 # Para todo día t perteneciente a T
-# t_index + 1 = t
+
 
 for t in T:
 
-    if int(t) - K_ps[p][s] >= 0:
-
-        R1[t] = model.addConstr(quicksum(x[p,T[int(t)-K_ps[p][s]]] * M_sp[p][s]\
-
-         for p in P for s in S[p] if int(t) >= K_ps[p][s]) + quicksum(w[p,s,t] * M_sp[p][s]\
-
-         for p in P for s in S[p] if int(t) >= K_ps[p][s])  <= BR + BE, name="Capacidad bloques[%s]" %t)
+        R1[t] = model.addConstr(quicksum(x[p,T[t-K_ps[p][s]-1]] * M_sp[p][s] for p in P for s in S[p] if t >= K_ps[p][s])\
+             + quicksum(w[p,s,t] * M_sp[p][s] for p in P for s in S[p] if t >= K_ps[p][s])  <= BR + BE, name="Capacidad bloques[%s]" %t)
 
 
 # RESTRICCIÓN 2
@@ -284,9 +250,9 @@ for p in P:
         for t in T:
 
             # Condicion para evitar exponente igual a 0
-            if int(t) >= K_ps[p][s]:
+            if t >= K_ps[p][s]:
 
-                R2[p,s,t] = model.addConstr(quicksum(y[p,s,t,m] for m in M) == x[p,T[int(t) - K_ps[p][s] - 1]] + w[p,s,t]\
+                R2[p,s,t] = model.addConstr(quicksum(y[p,s,t,m] for m in M) == x[p,T[t - K_ps[p][s] - 1]] + w[p,s,t]\
 
                 , name="Definicion y [%s, %s, %s]"%(p,s,t))
 
@@ -301,10 +267,10 @@ R3 = {}
 # Para todo protocolo p
 for p in P:
 
-    R3[p] = model.addConstr( (r[p] == z[p] + quicksum(x[p, str(d+1)] for d in Lp[p]) ), 
+    R3[p] = model.addConstr( (r[p] == z[p] + quicksum(x[p, d] for d in Lp[p]) ), 
         name="Conservacion de flujo")
 
-# Funciona sólo con el tiempo en string, no entiendo
+
 
 
 # Restricción 4 
@@ -373,16 +339,15 @@ for p in P:
 
     for s in S[p]:
 
-        for t_index, t in enumerate(T):
-
-            if t_index + 7 <= len(T):
+        for t in T:
 
                 # Condicion para evitar exponente igual a 0
-                if t_index + 7 >= K_ps[p][s]:
+            if t + 7 >= K_ps[p][s]:
+                if t+7 < len(T):
 
                     R7[p,s,t] = model.addConstr(w_prima[p,s,t] == 
-                        w[p,s,T[t_index-K_ps[p][int(s)-1]+7]] + x[p,T[t_index+7]],
-                                 name="Definición w'")
+                        w[p,s,T[t-K_ps[p][s]+7]] + x[p,T[t+7]],
+                                name="Definición w'")
 
 
 # RESTRICCIÓN 8
@@ -411,15 +376,13 @@ for p in P:
     for s in S[p]:
 
         # Para cada día
-        for t_index, t in enumerate(T):
-
-            if t_index + 7 <= len(T):
-
+        for t in T:
+            if t+7 <len(T): 
                 # Condición de avance de sesiones
-                if t_index + 1 >= K_ps[p][int(s)-1]:
+                if t + 1 >= K_ps[p][s]:
 
-                    R19[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t_index+7]] 
-                        + x[p,T[t_index+7]]), name="Definicion ω")
+                    R19[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t+7]] 
+                        + x[p,T[t+7]]), name="Definicion ω")
             else: 
                 R19[p,s,t] = model.addConstr(ω[p,s,t]==0)
 
