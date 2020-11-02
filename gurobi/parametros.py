@@ -30,6 +30,10 @@ M = [k for k in range(1,41)]
 # 40 bloques - 1, 2, ..., 40 
 # 10 horas de trabajo, cada modulo consiste en 15 min
 
+#Días
+
+T = [int(k) for k in range(1,13)]
+
 ##############
 # PARÁMETROS #
 ##############
@@ -113,6 +117,9 @@ NS = 20
 # Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
 
 Lp = {1: [5], 2: [ 5], 3: [5]}
+
+
+
 
 
 
