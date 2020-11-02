@@ -5,15 +5,6 @@ from parametros import *
 import numpy as np
 
 
-#############
-# CONJUNTOS #
-#############
-
-# DÍAS
-
-T = [int(k) for k in range(1,13)] 
-# 14 dias - 1, 2, ..., 13
-
 
 # GENERACIÓN DE COLUMNAS
 
