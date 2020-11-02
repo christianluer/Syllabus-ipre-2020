@@ -18,16 +18,12 @@ protocolo_4 = [[3, 5, 4, 1, 1, 1, 1] , [3, 5, 4, 1, 1, 1, 1]]
 # la segunda parte de la lista es la duracion por sesion de tratamientos, y se señala en modulos
 # la primera sigue siendo la distancia entre dias de las sesiones
 
-class Enfermera:
-    def __init__(self):
-        self.atendiendo = False
-
 
 class Calendario:
     def __init__(self, calendario):
         self.calendario = calendario
-        self.numero_enfermeras_ocupadas = 0 # esto se actualiza por modulos.
-        self.total_pacientes_por_modulo = 30 # capacidad de las enfermeras.
+        self.numero_enfermeras_ocupadas = 0  # esto se actualiza por modulos.
+        self.total_pacientes_por_modulo = 30  # capacidad de las enfermeras.
         self.total_enfermeras = 5
 
     def verificar_cupo_modulo(self, dia, semana, modulo, paciente):
@@ -74,15 +70,18 @@ class Paciente:
 
     def __init__(self, tipo):
         self.tipo = tipo
-        self.fechas_programadas = False
         # tipo refiere al tipo de cancer
-        self.duracion_sesion_actual = 4 # default, se cambia dinamicamente con la lista del protocolo
-        self.numero_sesion = 0 # se inicia en la sesion 0, con esta busco en el protocolo
+        self.duracion_sesion_actual = 4  # default, se cambia dinamicamente con la lista del protocolo
+        self.numero_sesion = 0  # se inicia en la sesion 0, con esta busco en el protocolo
         self.tiempo_desde_ultima_sesion = 0
+
     def asignar_protocolo(self, lista):
         self.protocolo = lista
     # poner aca como protocolo 1 o 2 o 3, cosa que puede tener un tipo de cancer,
 
+
+
+### primera politica ordenar por importancia de tipo de cancer
 
 def sortear(dato):
     return dato.tipo
@@ -111,9 +110,12 @@ class Pacientes_agendados(Lista_pacientes):
         self.jueves = deque()
         self.viernes = deque()
         self.sabado = deque()
+
+
 class Pacientes_rechazados(Lista_pacientes):
     def __init__(self):
         super().__init__()
+
 
 def llegada_pacientes_semana(pacientes_nuevos):
     pacientes = np.random.poisson(tasa_llegada_dia, 7)
@@ -153,23 +155,22 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario):
         llegada_pacientes_semana(espera)
         ## se me llenan los pacientes en espera, los ordeno
         espera.ordenar()
-        ## reviso ahora mis prioridades de los que estaban agendados de la semana anterior
+        # reviso ahora mis prioridades de los que estaban agendados de la semana anterior parto con lunes, hasta sabado
         # antes de "limpiar" con el renovar cuenta pacientes, debo agendar la semana, tanto para los
         # agendados como con los nuevos
         # Falta agendar la semana nomas, aca puedo usar un for por los dias o directamente agendar
         # todo en la semana altiro
 
 
-        for k in range(8):## dias
+        for k in range(7):## dias
             # debo poner pasar un dia, para los pacientes, una funcion en el calendario
             for i in pacientes_agendados.pacientes:
                 i.tiempo_desde_ultima_sesion += 1
-            calendario.renovar_cuenta_pacientes(k, i)
+                calendario.renovar_cuenta_pacientes(k, i)
             # politica de ahora, agendar por orden de importancia en el tipo de cancer
 
             # deberia agendarlos en sus dias, aca iria politica de que si hay pacientes nuevos que requieran tratamiento antes
             # ademas de ver lo de las enfermeras, ya se tiene una idea de como  hacerlo.
-            # se harian listas sobre los dias que hay que agendar a los pacientes.
 
         semana += 1
 
