@@ -22,17 +22,6 @@ from parametros import *
 #         Modulos.append(float(i.value))
 
 
-#############
-# CONJUNTOS #
-#############
-
-# DÍAS
-
-T = [int(k) for k in range(1,7)] 
-# 6 dias - 1, 2, ..., 6
-
-
-
 model = Model("Asignacion")
 
 # Para el satelite
@@ -71,7 +60,7 @@ for p in P:
 
         for t in T:
 
-            ω[p,s,t] = model.addVar(lb=0,vtype=GRB.CONTINUOUS, name="ω[%s,%s,%s]"%(p,s,t))
+            ω[p,s,t] = model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="ω[%s,%s,%s]"%(p,s,t))
 # R19 acota
 
 # Construcción de ρ p
@@ -80,7 +69,7 @@ for p in P:
 
 for p in P:
 
-    ρ[p] = model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="ρ[%s]"%(p))
+    ρ[p] = model.addVar(lb=0,  vtype=GRB.CONTINUOUS, name="ρ[%s]"%(p))
 # R20 acota
 
 ##########
@@ -105,7 +94,7 @@ for p in P:
 
         for t in T:
 
-            w[p,s,t] = model.addVar(lb=0,vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
+            w[p,s,t] = model.addVar(lb=0, vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
 
 
 w_prima = {}
@@ -117,7 +106,7 @@ for p in P:
 
         for t in T:
 
-            w_prima[p,s,t] = model.addVar(lb=0,vtype=GRB.INTEGER, name="w_prima[%s,%s,%s]"%(p,s,t))
+            w_prima[p,s,t] = model.addVar(lb=0,  vtype=GRB.INTEGER, name="w_prima[%s,%s,%s]"%(p,s,t))
 
 
 
@@ -128,7 +117,7 @@ r = {}
 
 for p in P:
 
-    r[p] = model.addVar(lb=0, vtype=GRB.INTEGER, name="r[%s]"%(p))
+    r[p] = model.addVar(lb=0,  vtype=GRB.INTEGER, name="r[%s]"%(p))
 
 
 # r_prima [p]
@@ -153,7 +142,7 @@ for p in P:
 
     for t in T:
 
-        x[p,t] = model.addVar(lb=0, vtype=GRB.INTEGER,  name="x[%s,%s]"%(p,t))
+        x[p,t] = model.addVar(lb=0,  vtype=GRB.INTEGER,  name="x[%s,%s]"%(p,t))
 
 # y [p,s,t,m] 
 # Cantidad de protocolos -p- que comienzan su sesion -s- en modulo -m- del dia -t-
@@ -167,7 +156,7 @@ for p in P:
 
             for m in M:
 
-                y[p,s,t,m] = model.addVar(lb=0,vtype=GRB.INTEGER, name="y[%s,%s,%s,%s]"%(p,s,t,m))
+                y[p,s,t,m] = model.addVar(lb=0, vtype=GRB.INTEGER, name="y[%s,%s,%s,%s]"%(p,s,t,m))
 
 
 # z [p]
@@ -177,7 +166,7 @@ z = {}
 
 for p in P:
 
-    z[p] = model.addVar(lb=0, vtype=GRB.INTEGER, name="z[%s]"%(p))
+    z[p] = model.addVar(lb=0,  vtype=GRB.INTEGER, name="z[%s]"%(p))
 
 
 
@@ -194,7 +183,7 @@ for p in P:
 
             for m in M:
 
-                u[p,s,t,m] = model.addVar(lb=0,vtype=GRB.INTEGER, name="u[%s,%s,%s,%s]"%(p,s,t,m))
+                u[p,s,t,m] = model.addVar(lb=0, vtype=GRB.INTEGER, name="u[%s,%s,%s,%s]"%(p,s,t,m))
 
 
 #################
@@ -204,7 +193,7 @@ for p in P:
 
 # Faltan los costos
 
-k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * (m_index + 1) for p in P for s in S[p] for t in T for m_index, m in enumerate(M))*(CE-CR)
+k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * m for p in P for s in S[p] for t in T for m in M)*(CE-CR)
 
 
 ####################
@@ -252,10 +241,11 @@ for p in P:
             # Condicion para evitar exponente igual a 0
             if t >= K_ps[p][s]:
 
-                R2[p,s,t] = model.addConstr(quicksum(y[p,s,t,m] for m in M) == x[p,T[t - K_ps[p][s] - 1]] + w[p,s,t]\
+                R2[p,s,t] = model.addConstr(quicksum(y[p,s,t,m] for m in range(1, BR+1)) == x[p,T[t - K_ps[p][s] - 1]] + w[p,s,t]\
 
                 , name="Definicion y [%s, %s, %s]"%(p,s,t))
-
+            else: 
+                R2[p,s,t] = model.addConstr( w[p,s,t]==0)
 
 # RESTRICCIÓN 3
 # Conservacion de flujo de pacientes
@@ -289,12 +279,12 @@ for p in P:
         for t in T:
 
             # Para cada módulo
-            for m_index, m in enumerate(M):
+            for m in range(1, BR+1):
 
                 # Condición: termino en mismo día
-                if m_index + M_sp[p][s] - 1 <= BR + BE:
+                if m + M_sp[p][s] - 1 <= BR + BE:
 
-                    R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m_index - M_sp[p][s] - 1]],
+                    R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m - M_sp[p][s] - 1]],
                         name="Definicion u [%s, %s, %s, %s]"%(p,s,t,m))
 
 
@@ -306,11 +296,11 @@ R5 = {}
 
 for t in T:
 
-    for m_index, m in enumerate(M):
+     for m in range(1, BR+1):
 
         R5[m,t] =   model.addConstr(( quicksum(y[p,s,t,m] + 
 
-                    quicksum(y[p,s,t,M[m_index]] for m_index in range(max(1, m_index - M_sp[p][s])))\
+                    quicksum(y[p,s,t,M[m]] for m_index in range(max(1, m - M_sp[p][s])))\
 
                     for p in P for s in S[p]) <= NS), name="Capacidad sillas")
 
@@ -350,6 +340,7 @@ for p in P:
                                 name="Definición w'")
 
 
+
 # RESTRICCIÓN 8
 # Realización de llegadas - probabilidades de transición
 # En informe (8)
@@ -383,6 +374,8 @@ for p in P:
 
                     R19[p,s,t] = model.addConstr(ω[p,s,t] == w[p,s,t] - γ * (w[p,s,T[t+7]] 
                         + x[p,T[t+7]]), name="Definicion ω")
+                else: 
+                    R19[p,s,t] = model.addConstr(ω[p,s,t]==0)
             else: 
                 R19[p,s,t] = model.addConstr(ω[p,s,t]==0)
 
