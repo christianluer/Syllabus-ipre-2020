@@ -3,41 +3,32 @@
 from collections import defaultdict
 # In[14]:
 
-semanas_de_simulacion = 4
+semanas_de_simulacion = 6
 
 dias = ["lunes", "martes", "miercoles", "jueves","viernes", "sabado"]
 calendario = defaultdict(defaultdict)
-semana = defaultdict(defaultdict)
-modulo = defaultdict(list)
-asiento = defaultdict(defaultdict)
+
 
 class Modulo:
-    def __init__(self):
+    def __init__(self, identificador):
         self.paciente = None
         self.ocupado = False
         self.necesita_enfermera = False
+        self.identificador = None
 
-for i in range(1, 41):#numero modulos
-    modulo[i] = Modulo()
-
-for i in range(1, 15):
-    asiento[i] = modulo
-
-for i in dias:
-    semana[i] = asiento
-
-
+cuenta = 0
 for i in range(semanas_de_simulacion):
+    semana = defaultdict(defaultdict)
+    for j in dias:
+        asiento = defaultdict(defaultdict)
+        for k in range(1, 15):
+            modulo = defaultdict(classmethod)
+            for u in range(1, 41):  # numero modulos
+                cuenta += 1
+                modulo[u] = Modulo(cuenta)
+            asiento[k] = modulo
+        semana[j] = asiento
     calendario[i] = semana
-
-for j in range(len(calendario[0]["lunes"][1])):
-    string = f""
-    for i in calendario[0]["lunes"]:
-        string += f"{calendario[0]['lunes'][i][1]}  "
-
-
-# In[ ]:
-
 
 
 
