@@ -257,7 +257,9 @@ maestro.setObjective(sum((k_c[c] * pi[c]) for c in C), GRB.MINIMIZE)
 
 maestro.optimize()
 
-maestro.computeIIS()
+#maestro.computeIIS()
 
-maestro.write("output_maestro.ilp")
+#maestro.write("output_maestro.ilp")
+
+maestro.printAttr("X")
 

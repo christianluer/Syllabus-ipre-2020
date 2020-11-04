@@ -32,7 +32,7 @@ M = [k for k in range(1,41)]
 
 #Días
 
-T = [int(k) for k in range(1,13)]
+T = [int(k) for k in range(1,364)]
 
 ##############
 # PARÁMETROS #
@@ -45,7 +45,7 @@ T = [int(k) for k in range(1,13)]
 
 # Costos por protocolo
 
-Costos = [100,100,100] #porque son estos???
+Costos = [1000000,1000000,1000000] #porque son estos???
 
 CD = dict(zip(P,Costos)) 
 # Asocia los costos cada protocolo con su costo de derivación
@@ -115,11 +115,11 @@ NE = 5
 
 # Número de sillas
 
-NS = 20 
+NS = 10 
 
 # Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
 
-Lp = {1: [5], 2: [ 5], 3: [5]}
+Lp = {1: [5], 2: [5], 3: [5]}
 
 
 
