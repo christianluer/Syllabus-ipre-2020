@@ -377,6 +377,7 @@ for p in P:
                 else: 
                     R19[p,s,t] = model.addConstr(ω[p,s,t]==0)
             else: 
+
                 R19[p,s,t] = model.addConstr(ω[p,s,t]==0)
 
 # RESTRICCIÓN 20
