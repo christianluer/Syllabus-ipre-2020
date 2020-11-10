@@ -142,7 +142,7 @@ for p in P:
 
     for t in T:
 
-        x[p,t] = model.addVar(lb=0, ub=(BR+BE)*NS, vtype=GRB.INTEGER,  name="x[%s,%s]"%(p,t))
+        x[p,t] = model.addVar(lb=0,  vtype=GRB.INTEGER,  name="x[%s,%s]"%(p,t))
 
 # y [p,s,t,m] 
 # Cantidad de protocolos -p- que comienzan su sesion -s- en modulo -m- del dia -t-
@@ -156,7 +156,7 @@ for p in P:
 
             for m in M:
 
-                y[p,s,t,m] = model.addVar(lb=0, ub=(BR+BE)*NE, vtype=GRB.INTEGER, name="y[%s,%s,%s,%s]"%(p,s,t,m))
+                y[p,s,t,m] = model.addVar(lb=0, vtype=GRB.INTEGER, name="y[%s,%s,%s,%s]"%(p,s,t,m))
 
 
 # z [p]
@@ -183,7 +183,7 @@ for p in P:
 
             for m in M:
 
-                u[p,s,t,m] = model.addVar(lb=0, ub=(BR+BE)*NE, vtype=GRB.INTEGER, name="u[%s,%s,%s,%s]"%(p,s,t,m))
+                u[p,s,t,m] = model.addVar(lb=0, vtype=GRB.INTEGER, name="u[%s,%s,%s,%s]"%(p,s,t,m))
 
 
 #################
@@ -257,7 +257,7 @@ R3 = {}
 # Para todo protocolo p
 for p in P:
 
-    R3[p] = model.addConstr( (r[p] == z[p] + quicksum(x[p, d] for d in Lp[p]) ), 
+    R3[p] = model.addConstr( (r[p] == z[p] + quicksum(x[p, d]   for d in range(1, (Lp[p]+1))) ), 
         name="Conservacion de flujo")
 
 
@@ -282,9 +282,9 @@ for p in P:
             for m in range(1, BR+1):
 
                 # Condición: termino en mismo día
-                if m + M_sp[p][s] - 1 <= BR + BE:
+                if m + M_sp[p][s] - 2 <= BR + BE:
 
-                    R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m + M_sp[p][s] - 1]],
+                    R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m + M_sp[p][s] - 2]],
                         name="Definicion u [%s, %s, %s, %s]"%(p,s,t,m))
 
 
@@ -300,7 +300,7 @@ for t in T:
 
         R5[m,t] =   model.addConstr(( quicksum(y[p,s,t,m] + 
 
-                    quicksum(y[p,s,t,M[m]] for m_index in range(max(1, m - M_sp[p][s])))\
+                    quicksum(y[p,s,t,M[m_index]] for m_index in range(max(1, m - M_sp[p][s])))\
 
                     for p in P for s in S[p]) <= NS), name="Capacidad sillas")
 
@@ -395,8 +395,8 @@ model.update()
 
 model.optimize()
 
-model.computeIIS()
+#model.computeIIS()
 
-model.write("output_pricing.ilp")
+#model.write("output_pricing.ilp")
 
 model.printAttr("X")
