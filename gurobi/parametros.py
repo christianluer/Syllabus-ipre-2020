@@ -119,11 +119,5 @@ NS = 10
 
 # Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
 
-Lp = {1: [5], 2: [5], 3: [5]}
-
-
-
-
-
-
+Lp = {1: 5, 2: 5, 3: 5}
 
