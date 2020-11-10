@@ -284,7 +284,7 @@ for p in P:
                 # Condición: termino en mismo día
                 if m + M_sp[p][s] - 1 <= BR + BE:
 
-                    R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m - M_sp[p][s] - 1]],
+                    R4[p,s,t,m] = model.addConstr(y[p,s,t,m] == u[p,s,t,M[m + M_sp[p][s] - 1]],
                         name="Definicion u [%s, %s, %s, %s]"%(p,s,t,m))
 
 
@@ -395,8 +395,8 @@ model.update()
 
 model.optimize()
 
-#model.computeIIS()
+model.computeIIS()
 
-#model.write("output_pricing.ilp")
+model.write("output_pricing.ilp")
 
 model.printAttr("X")
