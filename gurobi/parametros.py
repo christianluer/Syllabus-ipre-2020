@@ -11,7 +11,7 @@ import numpy as np
 P = [k for k in range(1,4)] 
 # 3 protocolos - 1, 2, 3
 
-Largo_P = [9, 6, 8] 
+Largo_P = [8, 6, 8] 
 # Duracion de cada protocolo en sesiones
 
 # SESIONES
@@ -32,7 +32,7 @@ M = [k for k in range(1,41)]
 
 #Días
 
-T = [int(k) for k in range(1,364)]
+T = [int(k) for k in range(1,21)]
 
 ##############
 # PARÁMETROS #
@@ -45,7 +45,7 @@ T = [int(k) for k in range(1,364)]
 
 # Costos por protocolo
 
-Costos = [1000000,1000000,1000000] #porque son estos???
+Costos = [999999999,999999999,999999999]
 
 CD = dict(zip(P,Costos)) 
 # Asocia los costos cada protocolo con su costo de derivación
@@ -56,7 +56,7 @@ CR = 100
 
 # Costo bloque extra
 
-CE = 200 
+CE = 250 
 
 CM = (CE - CR)/4 # Costo marginal por bloque extra de atención 
 
@@ -82,7 +82,7 @@ BR = 32
 # Bloques extra efectivos
 # 1,5 horas
 
-BE = 9 
+BE = 8 
 
 # Maestro
 
@@ -92,13 +92,13 @@ BE2 = [k for k in range(1, 13)] # Bloques extra nominales
 
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
 
-lambdas = [5, 3, 4] 
+lambdas = [20, 20, 20] 
 q = dict(zip(P,np.random.poisson(lambdas)))
 
 #tiempo entre la sesion s y su primera sesion
 #escrita como diccionario para que no hayan errores en los indices
 K_ps = \
-{1: {1: 0, 2: 1, 3: 2, 4: 4, 5: 6, 6: 8, 7: 10, 8: 11, 9: 12}, \
+{1: {1: 0, 2: 1, 3: 2, 4: 4, 5: 6, 6: 8, 7: 10, 8: 11}, \
 2: {1: 0, 2: 1, 3: 8, 4: 9, 5: 10, 6: 12}, \
 3: {1: 0, 2: 2, 3: 4, 4: 6, 5: 8, 6: 10, 7: 11, 8: 12}}
 
@@ -115,7 +115,7 @@ NE = 5
 
 # Número de sillas
 
-NS = 10 
+NS = 5 
 
 # Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
 
