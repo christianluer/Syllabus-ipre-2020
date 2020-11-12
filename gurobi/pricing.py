@@ -191,9 +191,8 @@ for p in P:
 #################
 # En informe (9)
 
-# Faltan los costos
 
-k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,m] * m for p in P for s in S[p] for t in T for m in M)*(CE-CR)
+k_as = quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,BR+l]*l  for p in P for s in S[p] for t in T for l in range(1, BE+1))*(CE-CR)
 
 
 ####################
