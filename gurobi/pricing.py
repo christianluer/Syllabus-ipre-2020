@@ -60,7 +60,7 @@ for p in P:
 
         for t in T:
 
-            ω[p,s,t] = model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="ω[%s,%s,%s]"%(p,s,t))
+            ω[p,s,t] = model.addVar(lb=0,  vtype=GRB.CONTINUOUS, name="ω[%s,%s,%s]"%(p,s,t))
 # R19 acota
 
 # Construcción de ρ p
@@ -69,7 +69,7 @@ for p in P:
 
 for p in P:
 
-    ρ[p] = model.addVar(lb=0,  vtype=GRB.CONTINUOUS, name="ρ[%s]"%(p))
+    ρ[p] = model.addVar(lb=0,   vtype=GRB.CONTINUOUS, name="ρ[%s]"%(p))
 # R20 acota
 
 ##########
@@ -299,7 +299,7 @@ for t in T:
 
         R5[m,t] =   model.addConstr(( quicksum(y[p,s,t,m] + 
 
-                    quicksum(y[p,s,t,M[m_index]] for m_index in range(max(1, m - M_sp[p][s])))\
+                    quicksum(y[p,s,t, m - M_sp[p][s]] for m in M if  m - M_sp[p][s] >= 1)\
 
                     for p in P for s in S[p]) <= NS), name="Capacidad sillas")
 
@@ -314,8 +314,7 @@ for t in T:
 
     for m in M:
 
-        R6[m,t] = model.addConstr((quicksum(y[p,s,t,m] for p in P for s in S[p]) + 
-                                    quicksum(u[p,s,t,m] for p in P for s in S[p]) <= NE), 
+        R6[m,t] = model.addConstr((quicksum(y[p,s,t,m] + u[p,s,t,m] for p in P for s in S[p]) <= NE), 
                                     name="Capacidad enfermeras")
 
 
