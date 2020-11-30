@@ -175,19 +175,19 @@ def llegada_pacientes_semana(pacientes_nuevos):
 
 
 def agendar_prox_semana(dia_ultima_atencion, paciente, agendados):
-    if paciente.numero_sesion <= len(paciente.protocolo[0]) - 1:
-        if 6 - dia_ultima_atencion < paciente.protocolo[0][paciente.numero_sesion]:
+    if paciente.numero_sesion <= len(paciente.protocolo[0]) - 1: ## si aun no terminan su tratamiento
+        if 5 - dia_ultima_atencion > paciente.protocolo[0][paciente.numero_sesion]:
             pass ## rechazo y aca deberia hacer que los pacientes se fueran de agendados.
         else:
-            dia = dia_ultima_atencion + paciente.protocolo[0][paciente.numero_sesion] - 6 ## deberia funcionar a priori
-            agendados.prox_semana[dia].appendright(paciente)
+            dia = dia_ultima_atencion + paciente.protocolo[0][paciente.numero_sesion] - 5 ## deberia funcionar a priori
+            agendados.prox_semana[dia].append(paciente)
             num_sesion = paciente.numero_sesion
-            while dia <= 6:
+            while dia <= 5:
                 num_sesion += 1
                 if num_sesion <= len(paciente.protocolo[0]) - 1:
                     dia += paciente.protocolo[0][num_sesion]
-                    if dia <= 6:
-                        agendados.prox_semana[dia].appendright(paciente)
+                    if dia <= 5:
+                        agendados.prox_semana[dia].append(paciente)
     else:
         pass # termino el tratamiento.
 
@@ -200,6 +200,7 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cu
     semana = 0
     dia = 0
     # todavia es una prueba será de 5 semanas
+    agendados = []
     for i in range(3):
         espera.pacientes = list()
         # cada i que pase será nueva semana, por lo tanto necesíto que me llegue nueva gente.
@@ -230,8 +231,11 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cu
                     if calendario.verificar_dia(i, dia, paciente):
                         modulo, asiento = calendario.verificar_dia(i, dia, paciente)
                         calendario.asignar_paciente(i, dia, modulo, asiento, paciente)
-                    elif not paciente.termino_sesion and dia + paciente.protocolo[0][paciente.numero_sesion] > 5:
-                        agendar_prox_semana(dia, paciente, pacientes_agendados)
+                elif not paciente.termino_sesion and dia + paciente.protocolo[0][paciente.numero_sesion] > 5:
+                    if calendario.verificar_dia(i, dia, paciente):
+                        modulo, asiento = calendario.verificar_dia(i, dia, paciente)
+                        calendario.asignar_paciente(i, dia, modulo, asiento, paciente)
+                        agendados.append([dia, paciente])
             pacientes_nuevos = espera.pacientes
             for p in espera.pacientes:
                 if dia <= p.acumulado - 1 and p.numero_sesion == 0:
@@ -247,6 +251,8 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cu
                         #print(f"numero paciente: {p.numero_paciente}")
                         ultima_sesion = dia + 1
                         #calendario.printear_dia(i, dia)
+                        if not p.termino_sesion and dia + p.protocolo[0][p.numero_sesion] > 5:
+                            agendados.append([dia, p])
                 elif (dia == p.acumulado or dia == p.acumulado + 1) and p.numero_sesion > 0:
                     if calendario.verificar_dia(i, dia, p):
                         # print(p.numero_paciente)
@@ -260,8 +266,14 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cu
                         #print(f"dia siguiente sesion:{p.acumulado}")
                         #print(f"numero paciente: {p.numero_paciente}")
                         ultima_sesion = dia + 1
-
+                        if not p.termino_sesion and dia + p.protocolo[0][p.numero_sesion] > 5:
+                            agendados.append([dia, p])
+            print(f"dia {dia}")
             calendario.printear_dia(i, dia)
+        for a in agendados:
+            agendar_prox_semana(a[0], a[1], pacientes_agendados)
+        agendados = []
+        print(f"semana {i}")
             ## debo limpiar los dias, las personas de los dias. en agendados
 
 
