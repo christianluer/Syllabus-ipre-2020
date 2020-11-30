@@ -1,3 +1,4 @@
+
 import numpy as np
 import random
 from collections import deque, defaultdict
@@ -28,7 +29,8 @@ class Calendario:
         self.total_pacientes_por_modulo = 30  # capacidad de las enfermeras.
         self.total_enfermeras = 10
 
-    def verificar_dia(self, semana,dia, paciente): ### tiene errores para los pacientes que ya fueron agendados
+    def verificar_dia(self,  semana, dia, paciente):
+        print(dias[dia])### tiene errores para los pacientes que ya fueron agendados
         for m in range(1, len(self.calendario[semana][dias[dia]][1]) + 1):
             if self.contar_enfermeras_modulo(dia, semana, m) < self.total_enfermeras:
                 # visto bueno, reviso si tmbn se cumple para el momento de la sesion
@@ -41,6 +43,7 @@ class Calendario:
                                                              m + duracion_sesion) < self.total_enfermeras \
                                     and self.calendario[semana][dias[dia]][j][i].ocupado is False \
                                     and self.contar_enfermeras_modulo(dia, semana, m) < self.total_enfermeras:
+                                print(self.calendario[semana][dias[dia]][j][i].paciente)
                                 cuenta += 1
                             elif self.calendario[semana][dias[dia]][j][i].ocupado:
                                 cuenta = 0
@@ -77,7 +80,7 @@ class Calendario:
             self.calendario[semana][dias[dia]][asiento][modulo_incial].necesita_enfermera = True
             self.calendario[semana][dias[dia]][asiento][modulo_incial + paciente.duracion_sesion_actual].necesita_enfermera = True
             paciente.cambio_sesion()
-            paciente.ultima_sesion = dia 
+            paciente.ultima_sesion = dia
 
 class Paciente:
 
@@ -200,68 +203,37 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cu
     semana = 0
     dia = 0
     # todavia es una prueba será de 5 semanas
-    for i in range(3):
-        espera.pacientes = list()
-        # cada i que pase será nueva semana, por lo tanto necesíto que me llegue nueva gente.
-        llegada_pacientes_semana(espera)
-        ## se me llenan los pacientes en espera, los ordeno
-        espera.ordenar()
-        espera.pacientes.reverse()
-        for ñ in espera.pacientes:
-            if cuenta_paciente < 10:
-                ñ.numero_paciente = f"p00{cuenta_paciente}"
-            elif cuenta_paciente >= 10 and cuenta_paciente < 100:
-                ñ.numero_paciente = f"p0{cuenta_paciente}"
-            else:
-                ñ.numero_paciente = f"p{cuenta_paciente}"
-            cuenta_paciente += 1
-        # reviso ahora mis prioridades de los que estaban agendados de la semana anterior parto con lunes, hasta sabado
-        # antes de "limpiar" con el renovar cuenta pacientes, debo agendar la semana, tanto para los
-        # agendados como con los nuevos
-        # Falta agendar la semana nomas, aca puedo usar un for por los dias o directamente agendar
-        # todo en la semana altiro
 
-
-        ## limpio las listas de los dias:
-        for dia in range(0, 6):
-            while len(pacientes_agendados.prox_semana[dia]) > 0:
-                paciente = pacientes_agendados.prox_semana[dia].popleft()
-                if not paciente.termino_sesion and dia + paciente.protocolo[0][paciente.numero_sesion] <= 5:
-                    if calendario.verificar_dia(i, dia, paciente):
-                        modulo, asiento = calendario.verificar_dia(i, dia, paciente)
-                        calendario.asignar_paciente(i, dia, modulo, asiento, paciente)
-                    elif not paciente.termino_sesion and dia + paciente.protocolo[0][paciente.numero_sesion] > 5:
-                        agendar_prox_semana(dia, paciente, pacientes_agendados)
-            pacientes_nuevos = espera.pacientes
-            for p in espera.pacientes:
-                if dia <= p.acumulado - 1 and p.numero_sesion == 0:
-                    if calendario.verificar_dia(i, dia, p):
-                        #print(p.numero_paciente)
-                        #print(f"dia {dia}")
-                        #print(f"semana {i}")
-                        #print(f"primera sesion antes de dias (fecha maxima):{p.acumulado}")
-                        modulo, asiento = calendario.verificar_dia(i, dia, p)
-                        calendario.asignar_paciente(i, dia, modulo, asiento, p)
-                        p.acumulado = p.protocolo[0][p.numero_sesion]
-                        #print(f"dia siguiente sesion:{p.acumulado}")
-                        #print(f"numero paciente: {p.numero_paciente}")
-                        ultima_sesion = dia + 1
-                        #calendario.printear_dia(i, dia)
-                elif (dia == p.acumulado or dia == p.acumulado + 1) and p.numero_sesion > 0:
-                    if calendario.verificar_dia(i, dia, p):
-                        # print(p.numero_paciente)
-                        #print(p.numero_paciente)
-                        #print(f"dia {dia}")
-                        #print(f"semana {i}")
-                        #print(f"sesion:{p.acumulado}")
-                        modulo, asiento = calendario.verificar_dia(i, dia, p)
-                        calendario.asignar_paciente(i, dia, modulo, asiento, p)
-                        p.acumulado += p.protocolo[0][p.numero_sesion]
-                        #print(f"dia siguiente sesion:{p.acumulado}")
-                        #print(f"numero paciente: {p.numero_paciente}")
-                        ultima_sesion = dia + 1
-
-            calendario.printear_dia(i, dia)
+    espera.pacientes = list()
+    # cada i que pase será nueva semana, por lo tanto necesíto que me llegue nueva gente.
+    llegada_pacientes_semana(espera)
+    ## se me llenan los pacientes en espera, los ordeno
+    espera.ordenar()
+    espera.pacientes.reverse()
+    for ñ in espera.pacientes:
+        if cuenta_paciente < 10:
+            ñ.numero_paciente = f"p00{cuenta_paciente}"
+        elif cuenta_paciente >= 10 and cuenta_paciente < 100:
+            ñ.numero_paciente = f"p0{cuenta_paciente}"
+        else:
+            ñ.numero_paciente = f"p{cuenta_paciente}"
+        cuenta_paciente += 1
+    paciente_1 = espera.pacientes[0]
+    #modulo, asiento = calendario.verificar_dia(0,0, paciente_1)
+    #calendario.asignar_paciente(0, 0, modulo, asiento, paciente_1)
+    modulo, asiento = calendario.verificar_dia(0, 3, paciente_1)
+    calendario.asignar_paciente(0, 3, modulo, asiento, paciente_1)
+    print(calendario.calendario[0]["jueves"][1][1].paciente)
+    paciente_2 = espera.pacientes[1]
+    #modulo, asiento = calendario.verificar_dia(0, 0, paciente_2)
+    #calendario.asignar_paciente(0, 0, modulo, asiento, paciente_2)
+    modulo, asiento = calendario.verificar_dia(0, 3, paciente_2)
+    calendario.asignar_paciente(0, 3, modulo, asiento, paciente_2)
+    print(calendario.calendario[0]["jueves"][1][1].paciente)
+    calendario.asignar_paciente(0, 3, modulo, asiento, paciente_2)
+    #calendario.printear_dia(0, 0)
+    calendario.printear_dia(0, 3)
+    print(dias[3])
             ## debo limpiar los dias, las personas de los dias. en agendados
 
 
@@ -273,18 +245,6 @@ if __name__ == "__main__":
     agendados = Pacientes_agendados()
     rechazados = Pacientes_rechazados()
     semana_actual = 0
+    llegada_pacientes_semana(espera)
+    espera.ordenar()
     simulacion(espera, agendados, rechazados, nuevo_calendario, cuenta_paciente)
-    ####simulacion_semana_nueva(espera, agendados, rechazados, calendario)
-
-
-
-#### NUEVO DESAFIO ####
-
-
-
-### debemos entonces guardar: el agendamiento final del dia: parecido al printear dia, no paciente por paciente
-### modulos, de todos los dias, como quedo el calendario finalmente.
-### generar indicadores, segun secciones de la cantidad total de dias, ejemplo modulos ocupados pòr sillas %
-### indicador de horas extras por dia
-### indicador de pacientes derivados por dia/semana
-### plantilla con los indicadores de los dias columna indicadores, filas dias
