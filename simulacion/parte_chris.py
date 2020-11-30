@@ -109,7 +109,7 @@ class Paciente:
 
     def cambio_sesion(self):
         #### se debe poner una vez se agenda a un paciente
-        if self.numero_sesion <= len(self.protocolo[0]):
+        if self.numero_sesion < len(self.protocolo[0]) - 1:
             self.numero_sesion += 1
             self.duracion_sesion_actual = self.protocolo[1][self.numero_sesion]
             self.tiempo_desde_ultima_sesion = 0
@@ -188,6 +188,8 @@ def agendar_prox_semana(dia_ultima_atencion, paciente, agendados):
                     dia += paciente.protocolo[0][num_sesion]
                     if dia <= 5:
                         agendados.prox_semana[dia].append(paciente)
+                else:
+                    break
     else:
         pass # termino el tratamiento.
 
