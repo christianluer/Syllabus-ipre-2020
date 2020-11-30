@@ -3,6 +3,8 @@
 from collections import defaultdict
 # In[14]:
 
+## HAY ERROR EN EL CALENDARIO, EL ALGORITMO ESTA BN PERO EL CALENDARIO NO RECONOCE LA OCUPACIO DE PACIENTES EN LOS OTROS DIAS.
+
 semanas_de_simulacion = 6
 
 dias = ["lunes", "martes", "miercoles", "jueves","viernes", "sabado"]
@@ -29,6 +31,3 @@ for i in range(semanas_de_simulacion):
             asiento[k] = modulo
         semana[j] = asiento
     calendario[i] = semana
-
-
-
