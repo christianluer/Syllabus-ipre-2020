@@ -386,7 +386,7 @@ R20 = {}
 
 for p in P:
 
-    R20[p] = model.addConstr((ρ[p] == r[p] - (γ * r_prima[p])), name="Definicion ρ")
+    R20[p] = model.addConstr((ρ[p] == r[p] - (γ *lambdas[p-1]*r_prima[p])), name="Definicion ρ")
 
 
 model.update()
