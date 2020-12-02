@@ -92,8 +92,10 @@ BE2 = [k for k in range(1, 13)] # Bloques extra nominales
 
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
 
-lambdas = [20, 20, 20] 
-q = dict(zip(P,np.random.poisson(lambdas)))
+lambdas = [5, 3, 4] 
+q = {1: 5, 2: 3, 3: 5}
+#CAMBIO PARA QUE NO SEA ALEATORIO
+
 
 #tiempo entre la sesion s y su primera sesion
 #escrita como diccionario para que no hayan errores en los indices
@@ -111,13 +113,12 @@ K_ps = \
 
 # Número de enfermeras
 
-NE = 5 
+NE = 1000000
 
 # Número de sillas
 
-NS = 5 
+NS = 500000
 
 # Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
 
 Lp = {1: 5, 2: 5, 3: 5}
-
