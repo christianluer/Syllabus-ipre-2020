@@ -2,9 +2,10 @@ import numpy as np
 import random
 from collections import deque, defaultdict
 from calendario_antiguo import calendario
+import csv
 
 cuenta_paciente = 1
-tasa_llegada_dia = 6
+tasa_llegada_dia = 12
 tipos_de_cancer = [1, 2, 3, 4]  # pueden ser nombres tambien
 asientos = 4
 modulos_atencion = 4 # tomara 4 modulos de 15 minutos el atender a un paciente
@@ -37,8 +38,7 @@ class Calendario:
                     cuenta = 0
                     for i in range(m, m + duracion_sesion):  ## revisa los modulos, donde podria meterlo, me entrega la primera ocurrencia
                         if i < 41:
-                            if self.contar_enfermeras_modulo(dia, semana,
-                                                             m + duracion_sesion) < self.total_enfermeras \
+                            if self.contar_enfermeras_modulo(dia, semana, m + duracion_sesion) < self.total_enfermeras \
                                     and self.calendario[semana][dias[dia]][j][i].ocupado is False \
                                     and self.contar_enfermeras_modulo(dia, semana, m) < self.total_enfermeras:
                                 cuenta += 1
@@ -52,9 +52,10 @@ class Calendario:
 
     def contar_enfermeras_modulo(self, dia, semana, modulo):
         cuenta = 0
-        for i in self.calendario[semana][dias[dia]]:
-            if calendario[semana][dias[dia]][i][modulo].necesita_enfermera:
-                cuenta += 1
+        if modulo < 41:
+            for i in self.calendario[semana][dias[dia]]:
+                if calendario[semana][dias[dia]][i][modulo].necesita_enfermera:
+                    cuenta += 1
         return cuenta
             # aca hay q revisar para cada modulo
 
@@ -70,15 +71,64 @@ class Calendario:
             contador += 1
             print(string)
     def asignar_paciente(self, semana, dia, modulo_incial, asiento, paciente):
-        if self.contar_enfermeras_modulo(dia,semana,modulo_incial) < self.total_enfermeras:
+        if self.contar_enfermeras_modulo(dia,semana,modulo_incial) < self.total_enfermeras and modulo_incial+ paciente.duracion_sesion_actual < 41:
             for i in range(modulo_incial, modulo_incial + paciente.duracion_sesion_actual + 1):
                 self.calendario[semana][dias[dia]][asiento][i].paciente = paciente.numero_paciente
                 self.calendario[semana][dias[dia]][asiento][i].ocupado = True
             self.calendario[semana][dias[dia]][asiento][modulo_incial].necesita_enfermera = True
             self.calendario[semana][dias[dia]][asiento][modulo_incial + paciente.duracion_sesion_actual].necesita_enfermera = True
             paciente.cambio_sesion()
-            paciente.ultima_sesion = dia 
+            paciente.ultima_sesion = dia
+    def contar_horas_extra_dia(self, dia, semana):
+        cuenta = 0
+        for i in self.calendario[semana][dia]:
+            for j in self.calendario[semana][dia][i]:
+                if j > 29:
+                    if self.calendario[semana][dia][i][j].paciente != None:
+                        cuenta += 1
+        cuenta = cuenta/4
+        return cuenta
+    def modulos_ocupados_por_sillas(self, dia, semana):
+        cuenta = list()
+        num = 1
+        for i in self.calendario[semana][dia]:
+            porcentaje = 0
+            for j in self.calendario[semana][dia][i]:
+                if self.calendario[semana][dia][i][j].ocupado == True:
+                    porcentaje += 1
+            porcentaje = porcentaje/40
+            cuenta.append([num, porcentaje])
+            num += 1
+        return cuenta
 
+    def generar_excel_indicador(self):
+        indicador_horas_por_dia = list()
+        cuenta = 1
+        for i in self.calendario:
+            for j in self.calendario[i]:
+                hras_extra = self.contar_horas_extra_dia(j, i)
+                indicador_horas_por_dia.append([i, j, hras_extra])
+
+        with open('indicadores_simulacion.csv', mode='w') as indicador:
+            indicador_writer = csv.writer(indicador, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            indicador_writer.writerow([f"numero semana", f"numero dia", f"horas extras"])
+            for ñ in indicador_horas_por_dia:
+                indicador_writer.writerow([f"semana: {ñ[0]}", f"dia: {ñ[1]}", f"horas extras: {ñ[2]}"])
+
+
+    def generar_excel_indicador_dia(self, week, day):
+        indicador_sillas_por_dia = list()
+        porcentajes = self.modulos_ocupados_por_sillas(day, week)
+        for i in porcentajes:
+            indicador_sillas_por_dia.append([i[0], i[1]])
+
+        with open(f'indicadores_simulacion_dia_{day}_sem_{week}.csv', mode='w') as indicador:
+            indicador_writer = csv.writer(indicador, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            indicador_writer.writerow([f"silla", f"porcentaje"])
+            for ñ in indicador_sillas_por_dia:
+                indicador_writer.writerow([f"silla: {ñ[0]}", f"%: {ñ[1]}"])
+
+            pass  ## trabajar el string pa pasarlo a excel
 class Paciente:
 
     def __init__(self, tipo):
@@ -203,7 +253,7 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cu
     dia = 0
     # todavia es una prueba será de 5 semanas
     agendados = []
-    for i in range(3):
+    for i in range(5):
         espera.pacientes = list()
         # cada i que pase será nueva semana, por lo tanto necesíto que me llegue nueva gente.
         llegada_pacientes_semana(espera)
@@ -276,10 +326,20 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cu
             agendar_prox_semana(a[0], a[1], pacientes_agendados)
         agendados = []
         print(f"semana {i}")
+    calendario.generar_excel_indicador()
+    calendario.generar_excel_indicador_dia(0,"lunes")
+    calendario.generar_excel_indicador_dia(0, "martes")
+    calendario.generar_excel_indicador_dia(0, "jueves")
             ## debo limpiar los dias, las personas de los dias. en agendados
 
 
         #agendar_prox_semana()
+
+
+def generar_excel_matricial(string):
+    pass ## trabajar el string pa pasarlo a excel
+
+
 
 if __name__ == "__main__":
     nuevo_calendario = Calendario(calendario)
@@ -296,9 +356,10 @@ if __name__ == "__main__":
 
 
 
-### debemos entonces guardar: el agendamiento final del dia: parecido al printear dia, no paciente por paciente
+### debemos entonces guardar: el agendamiento final del dia: parecido al printear dia, no paciente por paciente, funcion printear_dia de calendario
 ### modulos, de todos los dias, como quedo el calendario finalmente.
-### generar indicadores, segun secciones de la cantidad total de dias, ejemplo modulos ocupados pòr sillas %
-### indicador de horas extras por dia
+### generar indicadores, segun secciones de la cantidad total de dias
 ### indicador de pacientes derivados por dia/semana
 ### plantilla con los indicadores de los dias columna indicadores, filas dias
+## hojas de semana, periodo y simulacion completa
+## lo que se vea sea los dias al final de la simulacion, formato igual al del terminal.
