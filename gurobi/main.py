@@ -131,7 +131,7 @@ for p in P:
 # Maestro #
 ###########
 
-maestro = Model("Asignacion")
+maestro = Model("main")
 
 # Variable generación de columnas
 
