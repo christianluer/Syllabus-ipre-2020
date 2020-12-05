@@ -71,7 +71,7 @@ class Calendario:
             contador += 1
             print(string)
     def asignar_paciente(self, semana, dia, modulo_incial, asiento, paciente):
-        if self.contar_enfermeras_modulo(dia,semana,modulo_incial) < self.total_enfermeras and modulo_incial+ paciente.duracion_sesion_actual < 41:
+        if self.contar_enfermeras_modulo(dia,semana,modulo_incial) < self.total_enfermeras and modulo_incial+ paciente.duracion_sesion_actual < 41 and paciente.numero_sesion <= len(paciente.protocolo[0]):
             for i in range(modulo_incial, modulo_incial + paciente.duracion_sesion_actual + 1):
                 self.calendario[semana][dias[dia]][asiento][i].paciente = paciente.numero_paciente
                 self.calendario[semana][dias[dia]][asiento][i].ocupado = True
@@ -79,6 +79,9 @@ class Calendario:
             self.calendario[semana][dias[dia]][asiento][modulo_incial + paciente.duracion_sesion_actual].necesita_enfermera = True
             paciente.cambio_sesion()
             paciente.ultima_sesion = dia
+            paciente.numero_de_sesiones += 1
+            paciente.agendado_en.append([semana, dia])
+
     def contar_horas_extra_dia(self, dia, semana):
         cuenta = 0
         for i in self.calendario[semana][dia]:
@@ -137,11 +140,13 @@ class Paciente:
         self.duracion_sesion_actual = 0  # default, se cambia dinamicamente con la lista del protocolo
         self.numero_sesion = 0  # se inicia en la sesion 0, con esta busco en el protocolo
         self.tiempo_desde_ultima_sesion = 0
+        self.numero_de_sesiones = 0
         self.ultima_sesion = 0
         self.termino_sesion = False
         self.acumulado = 0
         self.protocolo = list()
         self.numero_paciente = 0
+        self.agendado_en = list()
         if self.tipo == 1:
             self.asignar_protocolo(protocolo_1)
         elif self.tipo == 2:
@@ -159,7 +164,7 @@ class Paciente:
 
     def cambio_sesion(self):
         #### se debe poner una vez se agenda a un paciente
-        if self.numero_sesion < len(self.protocolo[0]) - 1:
+        if self.numero_sesion < len(self.protocolo[0]) -1:
             self.numero_sesion += 1
             self.duracion_sesion_actual = self.protocolo[1][self.numero_sesion]
             self.tiempo_desde_ultima_sesion = 0
@@ -188,6 +193,9 @@ class Pacientes_nuevos(Lista_pacientes):
     def __init__(self):
         super().__init__()
 
+class Pacientes_sesion_terminada(Lista_pacientes):
+    def __init__(self):
+        super().__init__()
 
 class Pacientes_agendados(Lista_pacientes):
     def __init__(self):
@@ -224,10 +232,15 @@ def llegada_pacientes_semana(pacientes_nuevos):
 
 
 
-def agendar_prox_semana(dia_ultima_atencion, paciente, agendados):
+def agendar_prox_semana(dia_ultima_atencion, paciente, agendados, rechazados, terminados):
     if paciente.numero_sesion <= len(paciente.protocolo[0]) - 1: ## si aun no terminan su tratamiento
         if 5 - dia_ultima_atencion > paciente.protocolo[0][paciente.numero_sesion]:
             pass ## rechazo y aca deberia hacer que los pacientes se fueran de agendados.
+            rechazados.pacientes.append(paciente)
+            for dia in range(0, 6):
+                for j in agendados.prox_semana[dia]:
+                    if j.numero_paciente == paciente.numero_paciente:
+                        agendados.prox_semana[dia].remove(j)
         else:
             dia = dia_ultima_atencion + paciente.protocolo[0][paciente.numero_sesion] - 5 ## deberia funcionar a priori
             agendados.prox_semana[dia].append(paciente)
@@ -241,14 +254,17 @@ def agendar_prox_semana(dia_ultima_atencion, paciente, agendados):
                 else:
                     break
     else:
-        pass # termino el tratamiento.
-
+        terminados.pacientes.append(paciente)
+        for dia in range(0, 6):
+            for j in agendados.prox_semana[dia]:
+                if j.numero_paciente == paciente.numero_paciente:
+                    agendados.prox_semana[dia].remove(j)
 def posibles_dia_agendar(calendario, paciente, dia):
     pass
 
 
 
-def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cuenta_paciente):
+def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cuenta_paciente, all_pacientes,terminados):
     semana = 0
     dia = 0
     # todavia es una prueba será de 5 semanas
@@ -268,6 +284,7 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cu
             else:
                 ñ.numero_paciente = f"p{cuenta_paciente}"
             cuenta_paciente += 1
+            all_pacientes.pacientes.append(ñ)
         # reviso ahora mis prioridades de los que estaban agendados de la semana anterior parto con lunes, hasta sabado
         # antes de "limpiar" con el renovar cuenta pacientes, debo agendar la semana, tanto para los
         # agendados como con los nuevos
@@ -288,52 +305,34 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cu
                         modulo, asiento = calendario.verificar_dia(i, dia, paciente)
                         calendario.asignar_paciente(i, dia, modulo, asiento, paciente)
                         agendados.append([dia, paciente])
-            pacientes_nuevos = espera.pacientes
+                elif paciente.termino_sesion:
+                    terminados.pacientes.append(paciente)
             for p in espera.pacientes:
                 if dia <= p.acumulado - 1 and p.numero_sesion == 0:
                     if calendario.verificar_dia(i, dia, p):
-                        #print(p.numero_paciente)
-                        #print(f"dia {dia}")
-                        #print(f"semana {i}")
-                        #print(f"primera sesion antes de dias (fecha maxima):{p.acumulado}")
                         modulo, asiento = calendario.verificar_dia(i, dia, p)
                         calendario.asignar_paciente(i, dia, modulo, asiento, p)
                         p.acumulado = p.protocolo[0][p.numero_sesion]
-                        #print(f"dia siguiente sesion:{p.acumulado}")
-                        #print(f"numero paciente: {p.numero_paciente}")
-                        ultima_sesion = dia + 1
-                        #calendario.printear_dia(i, dia)
                         if not p.termino_sesion and dia + p.protocolo[0][p.numero_sesion] > 5:
                             agendados.append([dia, p])
                 elif (dia == p.acumulado or dia == p.acumulado + 1) and p.numero_sesion > 0:
                     if calendario.verificar_dia(i, dia, p):
-                        # print(p.numero_paciente)
-                        #print(p.numero_paciente)
-                        #print(f"dia {dia}")
-                        #print(f"semana {i}")
-                        #print(f"sesion:{p.acumulado}")
                         modulo, asiento = calendario.verificar_dia(i, dia, p)
                         calendario.asignar_paciente(i, dia, modulo, asiento, p)
                         p.acumulado += p.protocolo[0][p.numero_sesion]
-                        #print(f"dia siguiente sesion:{p.acumulado}")
-                        #print(f"numero paciente: {p.numero_paciente}")
-                        ultima_sesion = dia + 1
                         if not p.termino_sesion and dia + p.protocolo[0][p.numero_sesion] > 5:
                             agendados.append([dia, p])
             print(f"dia {dia}")
             calendario.printear_dia(i, dia)
         for a in agendados:
-            agendar_prox_semana(a[0], a[1], pacientes_agendados)
+            agendar_prox_semana(a[0], a[1], pacientes_agendados, pacientes_rechazados, terminados)
         agendados = []
         print(f"semana {i}")
-    calendario.generar_excel_indicador()
-    calendario.generar_excel_indicador_dia(0,"lunes")
-    calendario.generar_excel_indicador_dia(0, "martes")
-    calendario.generar_excel_indicador_dia(0, "jueves")
-            ## debo limpiar los dias, las personas de los dias. en agendados
+    #calendario.generar_excel_indicador()
+    #calendario.generar_excel_indicador_dia(0,"lunes")
+    #calendario.generar_excel_indicador_dia(0, "martes")
+    #calendario.generar_excel_indicador_dia(0, "jueves")
 
-
-        #agendar_prox_semana()
 
 
 def generar_excel_matricial(string):
@@ -342,13 +341,16 @@ def generar_excel_matricial(string):
 
 
 if __name__ == "__main__":
+    todos_los_pacientes = Lista_pacientes()
     nuevo_calendario = Calendario(calendario)
+    terminados = Pacientes_sesion_terminada()
     espera = Pacientes_nuevos()
     agendados = Pacientes_agendados()
     rechazados = Pacientes_rechazados()
     semana_actual = 0
-    simulacion(espera, agendados, rechazados, nuevo_calendario, cuenta_paciente)
+    simulacion(espera, agendados, rechazados, nuevo_calendario, cuenta_paciente, todos_los_pacientes, terminados)
     ####simulacion_semana_nueva(espera, agendados, rechazados, calendario)
+
 
 
 
