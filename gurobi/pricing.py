@@ -247,7 +247,7 @@ for p in P:
                 R2[p,s,t] = model.addConstr( w[p,s,t]==0)
 
 # RESTRICCIÓN 3
-# Conservacion de flujo de pacientes
+
 # Definición de r_p
 # En informe (3)
 
