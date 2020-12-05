@@ -4,30 +4,15 @@ from collections import deque, defaultdict
 from calendario_antiguo import calendario
 import csv
 
-cuenta_paciente = 1
-tasa_llegada_dia = 12
-tipos_de_cancer = [1, 2, 3, 4]  # pueden ser nombres tambien
-asientos = 4
-modulos_atencion = 4 # tomara 4 modulos de 15 minutos el atender a un paciente
-dias = ["lunes", "martes", "miercoles", "jueves","viernes", "sabado"]
-numero_enfermeras_minimo = 6
-
-protocolo_1 = [[2, 3, 5, 6, 4], [5, 5, 5, 6, 4]]
-protocolo_2 = [[2, 3, 3, 2, 2, 4], [4, 5, 5, 5, 4, 4]]
-protocolo_3 = [[1, 4, 5, 4, 4, 3, 2, 1], [4, 4, 5, 4, 4, 4, 4, 4]]
-protocolo_4 = [[3, 5, 4, 1, 1, 1, 1], [3, 5, 4, 1, 1, 1, 1]]
-
-
-# la segunda parte de la lista es la duracion por sesion de tratamientos, y se señala en modulos
-# la primera sigue siendo la distancia entre dias de las sesiones
 
 
 class Calendario:
-    def __init__(self, calendario):
+    def __init__(self, calendario, enfermeras, capacidad):
         self.calendario = calendario
         self.numero_enfermeras_ocupadas = 0  # esto se actualiza por modulos.
-        self.total_pacientes_por_modulo = 30  # capacidad de las enfermeras.
-        self.total_enfermeras = 10
+        self.total_enfermeras = enfermeras
+        self.total_pacientes_por_modulo = capacidad*self.total_enfermeras  # capacidad de las enfermeras.
+
 
     def verificar_dia(self, semana,dia, paciente): ### tiene errores para los pacientes que ya fueron agendados
         for m in range(1, len(self.calendario[semana][dias[dia]][1]) + 1):
@@ -264,12 +249,12 @@ def posibles_dia_agendar(calendario, paciente, dia):
 
 
 
-def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cuenta_paciente, all_pacientes,terminados):
+def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cuenta_paciente, all_pacientes,terminados, semanas_simulacion):
     semana = 0
     dia = 0
     # todavia es una prueba será de 5 semanas
     agendados = []
-    for i in range(5):
+    for i in range(semanas_simulacion):
         espera.pacientes = list()
         # cada i que pase será nueva semana, por lo tanto necesíto que me llegue nueva gente.
         llegada_pacientes_semana(espera)
@@ -308,13 +293,14 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cu
                 elif paciente.termino_sesion:
                     terminados.pacientes.append(paciente)
             for p in espera.pacientes:
-                if dia <= p.acumulado - 1 and p.numero_sesion == 0:
+                if dia <= p.acumulado and p.numero_sesion == 0:
                     if calendario.verificar_dia(i, dia, p):
                         modulo, asiento = calendario.verificar_dia(i, dia, p)
                         calendario.asignar_paciente(i, dia, modulo, asiento, p)
                         p.acumulado = p.protocolo[0][p.numero_sesion]
                         if not p.termino_sesion and dia + p.protocolo[0][p.numero_sesion] > 5:
                             agendados.append([dia, p])
+
                 elif (dia == p.acumulado or dia == p.acumulado + 1) and p.numero_sesion > 0:
                     if calendario.verificar_dia(i, dia, p):
                         modulo, asiento = calendario.verificar_dia(i, dia, p)
@@ -338,18 +324,37 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cu
 def generar_excel_matricial(string):
     pass ## trabajar el string pa pasarlo a excel
 
-
+def presentar(calendario):
+    print("######## Simulacion asignacion pacientes ########")
+    print(f"numero protocolos a evaluar: {len(tipos_de_cancer)}")
+    print(f"numero total de enfermeras en la simulacion: {calendario.total_enfermeras}")
+    print(f"cantidad de modulos: ")
 
 if __name__ == "__main__":
+
+    ##### IMPUTS ######
+    cuenta_paciente = 1
+    tasa_llegada_dia = 12
+    tipos_de_cancer = [1, 2, 3, 4]
+    dias = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"]
+    protocolo_1 = [[1, 3, 5, 6, 4], [5, 5, 5, 6, 4]] ## primer valor de la lista lista[0][0], es el
+    protocolo_2 = [[1, 3, 3, 2, 2, 4], [4, 5, 5, 5, 4, 4]]
+    protocolo_3 = [[0, 4, 5, 4, 4, 3, 2, 1], [4, 4, 5, 4, 4, 4, 4, 4]]
+    protocolo_4 = [[2, 5, 4, 1, 1, 1, 1], [3, 5, 4, 1, 1, 1, 1]]
+    enfermeras = 10
+    capacidad_enfermeras_regular = 3
+    semanas_simulacion = 5
+    #### FIN IMPUTS #####
+
     todos_los_pacientes = Lista_pacientes()
-    nuevo_calendario = Calendario(calendario)
+    nuevo_calendario = Calendario(calendario, enfermeras, capacidad_enfermeras_regular)
+    presentar(nuevo_calendario)
     terminados = Pacientes_sesion_terminada()
     espera = Pacientes_nuevos()
     agendados = Pacientes_agendados()
     rechazados = Pacientes_rechazados()
     semana_actual = 0
-    simulacion(espera, agendados, rechazados, nuevo_calendario, cuenta_paciente, todos_los_pacientes, terminados)
-    ####simulacion_semana_nueva(espera, agendados, rechazados, calendario)
+    simulacion(espera, agendados, rechazados, nuevo_calendario, cuenta_paciente, todos_los_pacientes, terminados, semanas_simulacion)
 
 
 
@@ -365,3 +370,5 @@ if __name__ == "__main__":
 ### plantilla con los indicadores de los dias columna indicadores, filas dias
 ## hojas de semana, periodo y simulacion completa
 ## lo que se vea sea los dias al final de la simulacion, formato igual al del terminal.
+
+## simular por pacientes
