@@ -2,6 +2,12 @@ from gurobipy import *
 
 import numpy as np
 
+
+##FALTA:
+#No estoy segura que parametros incorporar dentro de la clase y cuales dejar fuera
+#implementar variables
+
+
 #creación de la clase pricing con el problema respectivo
 class Pricing:
     def __init__(self, input):
@@ -142,3 +148,48 @@ class Pricing:
 
 
 #creación de la clase main con el problema respectivo
+class MasterProblem:
+    def __init__(self, input):
+        self.model = Model("Main")
+        #Esperable un input estilo diccionario con todos los datos necesarios
+        self.columnas = input["columnas"] #lista con los indices de todas las columnas que se estan considerando
+        #faltan
+
+    def buildModel(self):
+        self.generateVariables()
+        self.generateConstraints()
+        self.generateObjective()
+        self.model.update()
+    
+    def generateVariables(self):
+        # le quitamos el lb=0, revisar dps
+        self.pi = self.model.addVars(C, lb=0.0, ub=GRB.INFINITY, obj=0.0, vtype=GRB.CONTINUOUS, name="Columna ingresada"))
+
+    def generateConstraints(self):
+        
+        #restricción 1
+        self.model.addConstr((1 - γ) * sum(self.pi[c] for c in C) == 1)
+        
+        #restriccion 2
+        for p in P: 
+
+            for s in S[p]:
+
+                for t in T:
+            
+                    self.model.addConstr(sum((omega_cpst[c,p,s,t] * self.pi[c]) for c in C) >= E_alpha_w[p,s,t])
+        
+        #restriccion 3
+        for p in P: 
+            self.model.addConstr(sum((rho_cp[c,p] * self.pi[c]) for c in C) >= E_alpha_r[p])
+
+        #restricción 4
+        for c in C: 
+            self.model.addConstr(pi[c] >= 0)
+
+
+    def generateObjective(self):
+        self.f_obj_master = quicksum((k_c[c] * self.pi[c]) for c in C)
+        self.model.setObjective(self.f_obj_master, GRB.MINIMIZE)
+
+
