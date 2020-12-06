@@ -4,16 +4,16 @@ import numpy as np
 
 
 ##FALTA:
-#No estoy segura que parametros incorporar dentro de la clase y cuales dejar fuera
-#falta β, W, R  y los parametros compartidos
+# No estoy segura que parametros incorporar dentro de la clase y cuales dejar fuera
+# Faltan β, W, R  y los parametros compartidos
 
 
-#creación de la clase pricing con el problema respectivo
+# Creación de la clase pricing con el problema respectivo
 class Pricing:
     def __init__(self, input):
         self.model = Model("Asignación")
         #Esperable un input como diccionario con todos los datos necesarios
-        self.x = x #ejemplo, no estoy segura cuales son los que nosostros necistamos
+        self.x = x #ejemplo, no estoy segura cuales son los que nosostros necesitamos
         
 
     def buildModel(self):

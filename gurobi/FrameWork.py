@@ -1,3 +1,6 @@
+import pandas as pd
+import numpy as np
+import gurobipy as gu
 
 class InitialPatternsGenerator:
 	def __init__(self, nbItems):
@@ -42,9 +45,9 @@ class MasterProblem:
 		self.model.addVar(vtype = gu.GRB.INTEGER, lb=0, obj=objective, column=newColumn, name=ctName)
 		self.model.update()
 
-	def solveModel(self, timeLimit=None, GAP=EPSILON):
+	def solveModel(self, timeLimit=None, GAP='EPSILON'):
 		self.model.setParam('TimeLimit', timeLimit)
-		self.model.setParam('MIPGap', EPSILON)
+		self.model.setParam('MIPGap', 'EPSILON')
 		self.model.optimize()
 
 
@@ -77,6 +80,29 @@ class SubProblem:
 
 	def getNewPattern(self):
 		return self.model.gettAtr('X', self.model.getVars())
+
+# Generate Initial Patterns
+patternGenerator = InitialPatternsGenerator(len(inputDF))
+patternDF = patternGenerator.generateBasicInitialPatterns()
+
+# Build Master Problem with initial columns
+master = MasterProblem(patternDF, inputDF)
+master.buildModel()
+
+modelImprovable = True
+
+while modelImprovable:
+	# Solved relaxed Master
+	master.solveRelaxedModel()
+	duals = master.getDuals()
+	# Build SubProblem
+	subproblem = SubProblem(inputDF, rollWidth, duals)
+	subproblem.buildModel()
+	subproblem.solveModel(120, 0.05)
+	# Check if new pattern improves solution
+	modelImprovable = (subproblem.getObjectiveValue() - 1) > 0
+	# Add new generated pattern to master and iterate
+
 
 
 
