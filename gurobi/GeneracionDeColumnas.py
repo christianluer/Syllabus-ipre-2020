@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import gurobipy as gu
+from parametros import *
 
 
 ########################
@@ -8,12 +9,9 @@ import gurobipy as gu
 ########################
 
 class MasterProblem:
-    def __init__(self, patternDF, inputDF):
-        self.patternCost = patternDF['PatternCost'].values
-        self.pattern = patternDF['PatternFill'].values
-        self.amount = inputDF['Amount'].values
+    def __init__(self, inputDF):
+
         self.model = gu.model('MasterProblem')
-        self.patternsIndex = patternDF.index.values
 
     def buildModel(self):
         self.generateVariables()
@@ -22,6 +20,11 @@ class MasterProblem:
         self.model.update()
 
     def generateVariables(self):
+        # GENERACIÓN DE COLUMNAS #
+        self.pi = {}
+        # Variable generación de columnas
+        self.pi = maestro.addVars(C, lb=0.0, ub=GRB.INFINITY, obj=0.0, vtype=GRB.CONTINUOUS, name="Columna ingresada")
+
         # VARIABLES DE ESTADO #
         self.w = {}
         # Cantidad de protocolos -p- que tienen su sesion -s- en el día -t-
@@ -63,26 +66,57 @@ class MasterProblem:
                     for m in M:
                         self.u[p,s,t,m] = self.model.addVar(lb=0, vtype=GRB.INTEGER, name="u[%s,%s,%s,%s]"%(p,s,t,m))
 
+        # VARIABLES DUALES #
+        self.omega = {}
+        for c in C: 
+            if c == contador_de_columnas:
+                for p in P: 
+                    for s in S[p]:
+                        for t in T:
+                            self.omega[c,p,s,t] = self.model.addVar(lb = 0, vtype=GRB.INTEGER, name="omega[%s,%s,%s,%s]"%(c,p,s,t))
+                            if (int(t) + 6 - K_ps[p][s]) > 0 and (int(t) + 6) < 13:
+                                self.omega[c,p,s,t] = self.w[p,s,t] - γ * (self.w[p,s,(t + 6)] + self.x[p,(t + 6 - self.K_ps[p][s])])
+                            else:
+                                self.omega[c,p,s,t] = self.w[p,s,t]
+
+        self.rho = {}
+        for c in C: 
+            if c == contador_de_columnas:
+                for p in P: 
+                    self.rho[c,p] = self.r[p] - γ * lambdas[p-1]
+
+        self.E_w = {}
+        # Esperanza de W
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    self.E_w[p,s,t] = self.w[p,s,t] 
+
+        self.E_r = {}
+        # Esperanza de R
+        for p in P: 
+            self.E_r[p] = lambdas[p-1] 
+
     def generateConstraints(self):
         # Restricción 1
-        self.model.addConstr((1 - γ) * sum(pi[c] for c in C) == 1)
+        self.model.addConstr((1 - γ) * sum(self.pi[c] for c in C) == 1)
 
         # Restricción 2
         for p in P: 
             for s in S[p]:
                 for t in T:     
-                    self.model.addConstr(sum((omega_cpst[c,p,s,t] * pi[c]) for c in C) >= E_alpha_w[p,s,t])
+                    self.model.addConstr(sum((self.omega[c,p,s,t] * self.pi[c]) for c in C) >= self.E_w[p,s,t])
 
         # Restricción 3
         for p in P: 
-            self.model.addConstr(sum((rho_cp[c,p] * pi[c]) for c in C) >= E_alpha_r[p])
+            self.model.addConstr(sum((self.rho[c,p] * self.pi[c]) for c in C) >= self.E_r[p])
 
         # Restricción 4
         for c in C: 
-            self.model.addConstr(pi[c] >= 0)
+            self.model.addConstr(self.pi[c] >= 0)
 
     def generateObjective(self):
-        self.model.setObjective(sum((k_c[c] * pi[c]) for c in C), GRB.MINIMIZE)
+        self.model.setObjective(sum((self.k_c[c] * self.pi[c]) for c in C), GRB.MINIMIZE)
 
     def addColumn(self, objective, newPattern): 
         ctName = ('PatternUseVar[%s]' %len(self.model.getVars()))
@@ -90,9 +124,7 @@ class MasterProblem:
         self.model.addVar(vtype = gu.GRB.INTEGER, lb=0, obj=objective, column=newColumn, name=ctName)
         self.model.update()
 
-    def solveModel(self, timeLimit=None, GAP='EPSILON'):
-        self.model.setParam('TimeLimit', timeLimit)
-        self.model.setParam('MIPGap', 'EPSILON')
+    def solveModel(self):
         self.model.optimize()
 
 
@@ -287,6 +319,9 @@ class SubProblem:
     def getNewPattern(self):
         return self.model.gettAtr('X', self.model.getVars())
 
+    def solveModel(self):
+        self.model.optimize()
+
 
 ##########################
 # GENERACIÓN DE COLUMNAS #
@@ -304,6 +339,28 @@ delta_pr = delta_primera_col
 rho_pr = [18]
 k = [0]
 ####
+
+###############
+# ITERACIONES #
+###############
+
+# Construir problema Maestro con columnas iniciales
+master = MasterProblem(patternDF, inputDF)
+master.buildModel()
+
+modelImprovable = True
+
+while modelImprovable:
+    # Solved relaxed Master
+    master.solveRelaxedModel()
+    duals = master.getDuals()
+    # Build SubProblem
+    subproblem = SubProblem(inputDF, rollWidth, duals)
+    subproblem.buildModel()
+    subproblem.solveModel(120, 0.05)
+    # Check if new pattern improves solution
+    modelImprovable = (subproblem.getObjectiveValue() - 1) > 0
+    # Add new generated pattern to master and iterate
 
 #actual_pricing_value > 0.00001
 while (actual_pricing_value < -0.00001 and len(columnas) < 1000):
@@ -383,8 +440,6 @@ while (actual_pricing_value < -0.00001 and len(columnas) < 1000):
     #print("Número de iteraciones" + str(column_to_enter))
     if column_to_enter == 30:
         break
-
-
 
 # imprimo valores resultantes del master
 #print("Llega hasta iteración: ", column_to_enter - 1)

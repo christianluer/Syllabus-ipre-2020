@@ -6,6 +6,10 @@ import numpy as np
 # CONJUNTOS #
 #############
 
+# GENERACIÓN DE COLUMNAS
+ContadorDeColumnas = 1
+C = [k for k in range(1, ContadorDeColumnas + 1)] # Número de columnas
+
 # PROTOCOLOS
 
 P = [k for k in range(1,4)] 
