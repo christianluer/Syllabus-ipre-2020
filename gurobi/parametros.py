@@ -7,8 +7,10 @@ import numpy as np
 #############
 
 # GENERACIÓN DE COLUMNAS
-ContadorDeColumnas = 1
-C = [k for k in range(1, ContadorDeColumnas + 1)] # Número de columnas
+
+contador_de_columnas = 1
+
+C = [k for k in range(1, contador_de_columnas + 1)]
 
 # PROTOCOLOS
 
