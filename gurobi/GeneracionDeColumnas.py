@@ -20,17 +20,9 @@ class MasterProblem:
         self.omega = input["omega_dados"]
         self.rho = input["rho_dados"]
         self.w= input["w_dados"]
-        self.x = input["x_dados"]
         self.r = input["r_dados"]
-        self.y = input["y_dados"]
-
+        self.r_prima = input["r_prima_dados"]
         self.columnas = input["columnas"] #lista con los indices de todas las columnas que se estan considerando
-        # es necesario importar los parametros a la clase? onda los del archivo parametro?
-
-#falta poner tambien esto no estoy segura como
-#contador_de_columnas = 1
-
-#C = [k for k in range(1, contador_de_columnas + 1)]
 
     def buildModel(self):
         self.generateVariables()
@@ -38,33 +30,25 @@ class MasterProblem:
         self.generateObjective()
         self.model.update()
 
-
     def generateVariables(self):
-        # GENERACIÓN DE COLUMNAS #
+
         self.pi = {}
-        # Variable generación de columnas
         self.pi = model.addVars(C, lb=0.0, ub=GRB.INFINITY, obj=0.0, vtype=GRB.CONTINUOUS, name="Columna ingresada")
 
-
     def generateConstraints(self):
-        #definición de omega
-        for c in C: 
+        #definición de omega, revisar
+        for c in self.columnas: 
             if c == contador_de_columnas:
                 for p in P: 
                     for s in S[p]:
                         for t in T:
-                            if (int(t) + 6 - K_ps[p][s]) > 0 and (int(t) + 6) < 13:
-                                 self.model.addConstr(self.omega[c,p,s,t] == self.w[p,s,t] - γ * (self.w[p,s,(t + 6)] + self.x[p,(t + 6 - K_ps[p][s])]))
-                            else:
-                                self.model.addConstr(self.omega[c,p,s,t] == self.w[p,s,t])
-       
+                            self.model.addContr(self.omega[c,p,s,t] == self.omega[p,s,t])
        
         #definicion de rho
-        for c in C: 
+        for c in self.columnas: 
             if c == contador_de_columnas:
                 for p in P: 
-                    self.rho[c,p] = self.r[p] - γ * lambdas[p-1]
-
+                    self.model.addContr(self.rho[c,p] == self.rho[p])
 
         #definicion de la esperanza de w
         self.E_w = {}
@@ -73,20 +57,16 @@ class MasterProblem:
                 for t in T:
                     self.model.addConstr(self.E_w[p,s,t] == self.w[p,s,t]) 
         
-        
         #definicion de la esperanza de r
         self.E_r = {}
         for p in P: 
-            self.model.addConstr(self.E_r[p] = lambdas[p-1])
-
+            self.model.addConstr(self.E_r[p] == r_prima[p])
 
         #función costos
         self.k_c = {}
-        for c in C: 
+        for c in self.columnas: 
             if c == contador_de_columnas:
-                self.model.addConstr(self.k_c[c] == quicksum(self.z[p]*CD[p] for p in P) + quicksum(hora_extra * self.u[p,s,t,m] * CM for hora_extra in BE2 for p in P for s in S[p] for t in T for m in range(BR2 + hora_extra, 41)))
-
-
+                self.model.addConstr(self.k_c[c] == quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,BR+l]*l  for p in P for s in S[p] for t in T for l in range(1, BE+1))*(CE-CR))
 
         # Restricción 1
         self.model.addConstr((1 - γ) * sum(self.pi[c] for c in C) == 1, name= "beta")
@@ -101,22 +81,18 @@ class MasterProblem:
         for p in P: 
             self.model.addConstr(sum((self.rho[c,p] * self.pi[c]) for c in C) >= self.E_r[p], name = "R")
 
-        # Restricción 4
-        for c in C: 
-            self.model.addConstr(self.pi[c] >= 0)
-
     def generateObjective(self):
         self.model.setObjective(sum((self.k_c[c] * self.pi[c]) for c in C), GRB.MINIMIZE)
 
-    def addColumn(self, objective, newPattern): 
-        ctName = ('PatternUseVar[%s]' %len(self.model.getVars()))
-        newColumn = gu.Column(newPattern, self.model.getConstrs())
-        self.model.addVar(vtype = gu.GRB.INTEGER, lb=0, obj=objective, column=newColumn, name=ctName)
-        self.model.update()
+    #esto aun no se como usarlo
+    #def addColumn(self, objective, newPattern): 
+    #    ctName = ('PatternUseVar[%s]' %len(self.model.getVars()))
+    #    newColumn = gu.Column(newPattern, self.model.getConstrs())
+    #    self.model.addVar(vtype = gu.GRB.INTEGER, lb=0, obj=objective, column=newColumn, name=ctName)
+    #    self.model.update()
 
     def solveModel(self):
         self.model.optimize()
-
 
 
 ##PRICING##
@@ -206,6 +182,7 @@ class SubProblem:
 
     def generateConstraints(self):
         # Funcion costos para k pricing
+        self.k_as = {}
         self.model.addConstr(self.k_as == quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR+l]*l  for p in P for s in S[p] for t in T for l in range(1, BE+1))*(CE-CR))
         
         self.R1 = {}
@@ -311,8 +288,8 @@ class SubProblem:
         self.f_obj_pr = (1 - γ) * self.beta + quicksum(self.omega[p,s,t] * W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P) - self.k_as
         self.model.setObjective(self.f_obj_pr, GRB.MAXIMIZE)
     
-    def getNewPattern(self):
-        return self.model.gettAtr('X', self.model.getVars())
+    #def getNewPattern(self):
+        #return self.model.gettAtr('X', self.model.getVars())
 
     def solveModel(self):
         self.model.optimize()
@@ -326,62 +303,37 @@ class SubProblem:
 actual_obj_master = 0
 actual_pricing_value = -1000
 
+
 columnas = [0]
 column_to_enter = len(columnas)
 # *POR AHORA SE DEJAN EN VALOR CERO, PERO HAY QUE CAMBIARLOS DPS a ser matrices [l,g]
-omega = omega_primera_col # que sea una lista, donde cada posicion es una columna, y en c/ columna tengo un dict con chi_pr[l,g]
-rho = rho_primera_col
-x = x_primera_col
-w = w_primera_col
-r = r_primera_col
-y = y_primera_col
 
-####
+#OBTENIDOS DE LA FASE I
+omega_dado = omega_primera_col # que sea una lista, donde cada posicion es una columna, y en c/ columna tengo un dict con chi_pr[l,g]
+rho_dados = rho_primera_col
+w_dados = w_primera_col
+r_dados = r_primera_col
+r_prima-dados= y_primera_col
 
 ###############
 # ITERACIONES #
 ###############
 
-# Construir problema Maestro con columnas iniciales
-master = MasterProblem(patternDF, inputDF)
-#se le da el input de columnas inciales (fase 1)
-master.buildModel()
-
 modelImprovable = True
-
-while modelImprovable:
-    # Solved relaxed Master
-    master.solveRelaxedModel()
-    duals = master.getDuals()
-    #duals de nuestro problema serian W, R Y beta
-    # luego se construye el pricing con los valores entregados por el master
-    subproblem = SubProblem(inputDF, rollWidth, duals)
-    subproblem.buildModel()
-    subproblem.solveModel(120, 0.05)
-    # iterar hasta que el resultado del pricing se vuelva negativo
-    modelImprovable = (subproblem.getObjectiveValue()) > 0
-    # Add new generated pattern to master and iterate
-
-
-
-
-#otra forma de hacerlo:
-#actual_pricing_value > 0.00001
-while (actual_pricing_value < -0.00001 and len(columnas) < 1000):
+while (modelImprovable and len(columnas) < 1000):
   
     last_obj_master = actual_obj_master
     
     #los aux son para agrega nuevas columnas
-    #no se cuales van con 0 y cuales con {}
     aux_omega = {}
     aux_rho = {}
-    aux_w = 0
-    aux_y = 0
-    aux_r= 0
-    aux_x= 0
+    aux_w = {}
+    aux_y = {}
+    aux_r= {}
+    aux_x= {}
     #Optimizamos el master con valores de entrada (fase I)
       
-    master_solution = MasterProblem({"columnas": columnas, "omega_dado": omega_dado, "rho_dado": rho_dado, "w_dados": w_dados, "y_dados": y_dados, "x_dados": x_dados, , "r_dados": r_dados})
+    master_solution = MasterProblem({"columnas": columnas, "omega_dado": omega_dado, "rho_dado": rho_dado, "w_dados": w_dados, "r_dados": r_dados"r_prima_dados": r_prima_dados})
     master_solution.buildModel()
     master_solution.model.optimize()
 
@@ -393,7 +345,7 @@ while (actual_pricing_value < -0.00001 and len(columnas) < 1000):
     print("RESULTADOS PI")
     print(master_solution.model.getVars())
     rest = master_solution.model.getConstrs()
-    beta_dado, W_dados, R_dados = {}, {}
+    beta_dado, W_dados, R_dados = {}, {}, {}
 
     ##generando variables duales y asignandoles los nombres correspondientes
     for r in rest:
@@ -415,6 +367,7 @@ while (actual_pricing_value < -0.00001 and len(columnas) < 1000):
     actual_pricing_value = pricing_solution.model.objVal
     pricing_solution.model.printAttr('X')
 
+    #REVISAR LO DE LOS INDICES
     for v in lista_variables_pricing: 
         name = v.varName
         if name[0] == "w": 
@@ -436,7 +389,7 @@ while (actual_pricing_value < -0.00001 and len(columnas) < 1000):
         columnas.append(column_to_enter)
         #print(columnas)
         omega.append(omega_aux)
-        rho.append(rhoa_aux)
+        rho.append(rho_aux)
         w.append(w_aux)
         x.append(x_aux)
         r.append(r_aux)
@@ -450,3 +403,26 @@ while (actual_pricing_value < -0.00001 and len(columnas) < 1000):
 #print("Llega hasta iteración: ", column_to_enter - 1)
 
 
+
+
+
+#OTRA FORMA DE HACERLO
+modelImprovable = True
+
+while modelImprovable:
+    # Solved relaxed Master
+    master.solveRelaxedModel()
+    duals = master.getDuals()
+    #duals de nuestro problema serian W, R Y beta
+    # luego se construye el pricing con los valores entregados por el master
+    subproblem = SubProblem(inputDF, rollWidth, duals)
+    subproblem.buildModel()
+    subproblem.solveModel(120, 0.05)
+    # iterar hasta que el resultado del pricing se vuelva negativo
+    modelImprovable = (subproblem.getObjectiveValue()) > 0
+    # Add new generated pattern to master and iterate
+
+
+
+
+#otra forma de hacerlo:
