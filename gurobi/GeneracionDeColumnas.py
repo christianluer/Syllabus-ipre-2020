@@ -22,13 +22,11 @@ class MasterProblem:
 
         self.columnas = input["columnas"] #lista con los indices de todas las columnas que se estan considerando
         # es necesario importar los parametros a la clase? onda los del archivo parametro?
+
+#falta poner tambien esto no estoy segura como
 #contador_de_columnas = 1
 
 #C = [k for k in range(1, contador_de_columnas + 1)]
-
-
-
-
 
     def buildModel(self):
         self.generateVariables()
@@ -122,6 +120,9 @@ class SubProblem:
         self.duals = duals
         self.model = gu.model('SubProblem')
         self.piecesIndex = inputDF.index.values
+        self.W = #obtenido a partir del dual del maestro
+        self.R = #obtenido a partir del dual del maestro
+        self.beta= #obtenido a partir del dual del maestro
 
     def buildModel(self):
         self.generateVariables()
@@ -182,15 +183,15 @@ class SubProblem:
                         self.u[p,s,t,m] = self.model.addVar(lb=0, vtype=GRB.INTEGER, name="u[%s,%s,%s,%s]"%(p,s,t,m))
 
         # VARIABLES ADICIONALES #
-        self.ω = {}
+        self.omega = {}
         for p in P:
             for s in S[p]:
                 for t in T:
-                    self.ω[p,s,t] = self.model.addVar(lb=0,  vtype=GRB.CONTINUOUS, name="ω[%s,%s,%s]"%(p,s,t))
+                    self.omega[p,s,t] = self.model.addVar(lb=0,  vtype=GRB.CONTINUOUS, name="omega[%s,%s,%s]"%(p,s,t))
 
-        self.ρ = {}
+        self.rho = {}
         for p in P:
-            self.ρ[p] = self.model.addVar(lb=0,   vtype=GRB.CONTINUOUS, name="ρ[%s]"%(p))
+            self.rho[p] = self.model.addVar(lb=0,   vtype=GRB.CONTINUOUS, name="rho[%s]"%(p))
         
 
     def generateConstraints(self):
@@ -255,7 +256,7 @@ class SubProblem:
                                             name="Capacidad enfermeras")
         
         self.R7 = {}
-        "Definición w"
+        #"Definición w"
         for p in P:
             for s in S[p]:
                 for t in T:
@@ -273,7 +274,7 @@ class SubProblem:
             self.R8[p] = self.model.addConstr((self.r_prima[p] == q[p]), name="Realizacion de las llegadas")
         
         self.R19 = {}
-        # Definición de ω
+        # Definición de omega
         for p in P:
             for s in S[p]:
                 for t in T:
@@ -281,23 +282,23 @@ class SubProblem:
                         # Condición de avance de sesiones
                         if t + 1 >= K_ps[p][s]:
 
-                            self.R19[p,s,t] = self.model.addConstr(self.ω[p,s,t] == self.w[p,s,t] - γ * (self.w[p,s,T[t+7]] 
-                                + self.x[p,T[t+7]]), name="Definicion ω")
+                            self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t] == self.w[p,s,t] - γ * (self.w[p,s,T[t+7]] 
+                                + self.x[p,T[t+7]]), name="Definicion omega")
                         else: 
-                            self.R19[p,s,t] = self.model.addConstr(self.ω[p,s,t]==0)
+                            self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t]==0)
                     else: 
 
-                        self.R19[p,s,t] = self.model.addConstr(self.ω[p,s,t]==0)       
+                        self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t]==0)       
         
         self.R20 = {}
-        # Definición de ρ
+        # Definición de rho
         for p in P:
 
-            self.R20[p] = self.model.addConstr((self.ρ[p] == self.r[p] - (γ *self.r_prima[p])), name="Definicion ρ")
+            self.R20[p] = self.model.addConstr((self.rho[p] == self.r[p] - (γ *self.r_prima[p])), name="Definicion rho")
 
         
     def generateObjective(self):
-        self.f_obj_pr = (1 - γ) * β + quicksum(self.ω[p,s,t] * W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.ρ[p] * self.R[p] for p in P) - self.k_as
+        self.f_obj_pr = (1 - γ) * self.beta + quicksum(self.omega[p,s,t] * W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P) - self.k_as
         self.model.setObjective(self.f_obj_pr, GRB.MAXIMIZE)
     
     def getNewPattern(self):
