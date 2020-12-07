@@ -8,13 +8,17 @@ from parametros import *
 # DEFINICIÓN DE CLASES #
 ########################
 
+
+
+##PROBLEMA MAIN ###
+
 class MasterProblem:
     def __init__(self, input):
 
         self.model = gu.model('MasterProblem')
         #input proveniente del pricing
-        self.omega = input["omega_dado"]
-        self.rho = input["rho_dado"]
+        self.omega = input["omega_dados"]
+        self.rho = input["rho_dados"]
         self.w= input["w_dados"]
         self.x = input["x_dados"]
         self.r = input["r_dados"]
@@ -34,6 +38,7 @@ class MasterProblem:
         self.generateObjective()
         self.model.update()
 
+
     def generateVariables(self):
         # GENERACIÓN DE COLUMNAS #
         self.pi = {}
@@ -52,6 +57,8 @@ class MasterProblem:
                                  self.model.addConstr(self.omega[c,p,s,t] == self.w[p,s,t] - γ * (self.w[p,s,(t + 6)] + self.x[p,(t + 6 - K_ps[p][s])]))
                             else:
                                 self.model.addConstr(self.omega[c,p,s,t] == self.w[p,s,t])
+       
+       
         #definicion de rho
         for c in C: 
             if c == contador_de_columnas:
@@ -72,6 +79,7 @@ class MasterProblem:
         for p in P: 
             self.model.addConstr(self.E_r[p] = lambdas[p-1])
 
+
         #función costos
         self.k_c = {}
         for c in C: 
@@ -81,17 +89,17 @@ class MasterProblem:
 
 
         # Restricción 1
-        self.model.addConstr((1 - γ) * sum(self.pi[c] for c in C) == 1)
+        self.model.addConstr((1 - γ) * sum(self.pi[c] for c in C) == 1, name= "beta")
 
         # Restricción 2
         for p in P: 
             for s in S[p]:
                 for t in T:     
-                    self.model.addConstr(sum((self.omega[c,p,s,t] * self.pi[c]) for c in C) >= self.E_w[p,s,t])
+                    self.model.addConstr(sum((self.omega[c,p,s,t] * self.pi[c]) for c in C) >= self.E_w[p,s,t], name= "W")
 
         # Restricción 3
         for p in P: 
-            self.model.addConstr(sum((self.rho[c,p] * self.pi[c]) for c in C) >= self.E_r[p])
+            self.model.addConstr(sum((self.rho[c,p] * self.pi[c]) for c in C) >= self.E_r[p], name = "R")
 
         # Restricción 4
         for c in C: 
@@ -110,19 +118,21 @@ class MasterProblem:
         self.model.optimize()
 
 
+
+##PRICING##
 class SubProblem:
-    def __init__(self, inputDF, rollWidth, duals):
-        self.patternCost = patternDF['PatternCost'].values
-        self.pattern = patternDF['PatternFill'].values
-        self.amount = inputDF['Amount'].values
-        self.pieceSize = inputDF['Size'].values
-        self.rollWidth = rollWidth
-        self.duals = duals
+    def __init__(self, input):
+        #self.patternCost = patternDF['PatternCost'].values
+        #self.pattern = patternDF['PatternFill'].values
+        #self.amount = inputDF['Amount'].values
+        #self.pieceSize = inputDF['Size'].values
+        #self.rollWidth = rollWidth
+        #self.duals = duals
         self.model = gu.model('SubProblem')
-        self.piecesIndex = inputDF.index.values
-        self.W = #obtenido a partir del dual del maestro
-        self.R = #obtenido a partir del dual del maestro
-        self.beta= #obtenido a partir del dual del maestro
+        #self.piecesIndex = inputDF.index.values
+        self.W = input["W_dado"]#obtenido a partir del dual del maestro
+        self.R = input["R_dado"] #obtenido a partir del dual del maestro
+        self.beta= input["beta_dado"] #obtenido a partir del dual del maestro
 
     def buildModel(self):
         self.generateVariables()
@@ -319,10 +329,13 @@ actual_pricing_value = -1000
 columnas = [0]
 column_to_enter = len(columnas)
 # *POR AHORA SE DEJAN EN VALOR CERO, PERO HAY QUE CAMBIARLOS DPS a ser matrices [l,g]
-chi_pr = chi_primera_col # que sea una lista, donde cada posicion es una columna, y en c/ columna tengo un dict con chi_pr[l,g]
-delta_pr = delta_primera_col
-rho_pr = [18]
-k = [0]
+omega = omega_primera_col # que sea una lista, donde cada posicion es una columna, y en c/ columna tengo un dict con chi_pr[l,g]
+rho = rho_primera_col
+x = x_primera_col
+w = w_primera_col
+r = r_primera_col
+y = y_primera_col
+
 ####
 
 ###############
@@ -331,6 +344,7 @@ k = [0]
 
 # Construir problema Maestro con columnas iniciales
 master = MasterProblem(patternDF, inputDF)
+#se le da el input de columnas inciales (fase 1)
 master.buildModel()
 
 modelImprovable = True
@@ -339,27 +353,35 @@ while modelImprovable:
     # Solved relaxed Master
     master.solveRelaxedModel()
     duals = master.getDuals()
-    # Build SubProblem
+    #duals de nuestro problema serian W, R Y beta
+    # luego se construye el pricing con los valores entregados por el master
     subproblem = SubProblem(inputDF, rollWidth, duals)
     subproblem.buildModel()
     subproblem.solveModel(120, 0.05)
-    # Check if new pattern improves solution
-    modelImprovable = (subproblem.getObjectiveValue() - 1) > 0
+    # iterar hasta que el resultado del pricing se vuelva negativo
+    modelImprovable = (subproblem.getObjectiveValue()) > 0
     # Add new generated pattern to master and iterate
 
+
+
+
+#otra forma de hacerlo:
 #actual_pricing_value > 0.00001
 while (actual_pricing_value < -0.00001 and len(columnas) < 1000):
   
     last_obj_master = actual_obj_master
     
-    aux_chi_pr = {}
-    aux_delta_pr = {}
-    aux_rho_pr = 0
-    aux_k = 0
-
-    #Optimizamos el master
+    #los aux son para agrega nuevas columnas
+    #no se cuales van con 0 y cuales con {}
+    aux_omega = {}
+    aux_rho = {}
+    aux_w = 0
+    aux_y = 0
+    aux_r= 0
+    aux_x= 0
+    #Optimizamos el master con valores de entrada (fase I)
       
-    master_solution = MasterProblem({"columnas": columnas, "chi_pr": chi_pr, "delta_pr": delta_pr, "rho_pr": rho_pr, "k": k})
+    master_solution = MasterProblem({"columnas": columnas, "omega_dado": omega_dado, "rho_dado": rho_dado, "w_dados": w_dados, "y_dados": y_dados, "x_dados": x_dados, , "r_dados": r_dados})
     master_solution.buildModel()
     master_solution.model.optimize()
 
@@ -371,27 +393,20 @@ while (actual_pricing_value < -0.00001 and len(columnas) < 1000):
     print("RESULTADOS PI")
     print(master_solution.model.getVars())
     rest = master_solution.model.getConstrs()
-    X_dados, D_dados = {}, {}
+    beta_dado, W_dados, R_dados = {}, {}
+
+    ##generando variables duales y asignandoles los nombres correspondientes
     for r in rest:
         if r.constrName == "beta":
             beta_dado = r.Pi
-        elif r.constrName[0] == "X":
-           X_dados[r.constrName] = r.Pi
-        elif r.constrName[0] == "D":
-            D_dados[r.constrName] = r.Pi  
-        else:
-            rho_dado = r.Pi
-    # print("Llega hasta iteración: ", column_to_enter)
-    # print("beta_dado: ", beta_dado)
-    # print("X_dados: ", X_dados)
-    # print("D_dados: ", D_dados)
-    # print("rho_dado: ", rho_dado)
+        elif r.constrName[0] == "W":
+           W_dados[r.constrName] = r.Pi
+        elif r.constrName[0] == "R":
+            R_dados[r.constrName] = r.Pi  
 
     # una vez resuelto el Master, usamos estos datos como input para el pricing, para resolver este
-    #pricing_solution = PricingProblem({"beta_dado": beta_dado, "X_dados": X_dados, "D_dados": D_dados, "rho_dado": rho_dado})
-
-    #ESTAMOS FORZANDO RHO DADO = 1 PARA QUE FUNCIONE EL PRICING (NO SIRVE CON 0 -> tira valores sin sentido para b)
-    pricing_solution = PricingProblem({"beta_dado": beta_dado, "X_dados": X_dados, "D_dados": D_dados, "rho_dado": 1})
+     
+    pricing_solution = PricingProblem({"beta_dado": beta_dado, "W_dados": W_dados, "R_dados": R_dados)
 
     pricing_solution.buildModel()
     pricing_solution.model.optimize()
@@ -402,25 +417,30 @@ while (actual_pricing_value < -0.00001 and len(columnas) < 1000):
 
     for v in lista_variables_pricing: 
         name = v.varName
-        if name[0] == "c": # para chi_pr
-            aux_chi_pr[name] = v.x # Key del dict será "chi_pr[indicex,indicey]"
-        elif name[0] == "d": # para delta_pr
-            aux_delta_pr[name] = v.x
-        elif name[0] == "r": # para rho_pr
-            aux_rho_pr = v.x
-        elif name[0] == "k": # para k
-            aux_k = v.x
-    
+        if name[0] == "w": 
+            w_aux[name] = v.x # Key del dict será "chi_pr[indicex,indicey]"
+        elif name[0] == "omega": 
+            omega_aux[name] = v.x
+        elif name[0] == "rho":
+            rho_aux = v.x
+        elif name[0] == "y": 
+            y_aux = v.x
+        elif name[0] == "r": 
+            r_aux = v.x    
+        elif name[0] == "x": 
+            x_aux = v.x 
     
     #if actual_pricing_value > 0:
     print("Veamos pricing_valur:" + str(actual_pricing_value))
     if actual_pricing_value < 0:
         columnas.append(column_to_enter)
         #print(columnas)
-        chi_pr.append(aux_chi_pr)
-        delta_pr.append(aux_delta_pr)
-        rho_pr.append(aux_rho_pr)
-        k.append(aux_k)
+        omega.append(omega_aux)
+        rho.append(rhoa_aux)
+        w.append(w_aux)
+        x.append(x_aux)
+        r.append(r_aux)
+        y.append(y_aux)
     column_to_enter += 1
     #print("Número de iteraciones" + str(column_to_enter))
     if column_to_enter == 30:
