@@ -9,9 +9,26 @@ from parametros import *
 ########################
 
 class MasterProblem:
-    def __init__(self, inputDF):
+    def __init__(self, input):
 
         self.model = gu.model('MasterProblem')
+        #input proveniente del pricing
+        self.omega = input["omega_dado"]
+        self.rho = input["rho_dado"]
+        self.w= input["w_dados"]
+        self.x = input["x_dados"]
+        self.r = input["r_dados"]
+        self.y = input["y_dados"]
+
+        self.columnas = input["columnas"] #lista con los indices de todas las columnas que se estan considerando
+        # es necesario importar los parametros a la clase? onda los del archivo parametro?
+#contador_de_columnas = 1
+
+#C = [k for k in range(1, contador_de_columnas + 1)]
+
+
+
+
 
     def buildModel(self):
         self.generateVariables()
@@ -23,81 +40,48 @@ class MasterProblem:
         # GENERACIÓN DE COLUMNAS #
         self.pi = {}
         # Variable generación de columnas
-        self.pi = maestro.addVars(C, lb=0.0, ub=GRB.INFINITY, obj=0.0, vtype=GRB.CONTINUOUS, name="Columna ingresada")
+        self.pi = model.addVars(C, lb=0.0, ub=GRB.INFINITY, obj=0.0, vtype=GRB.CONTINUOUS, name="Columna ingresada")
 
-        # VARIABLES DE ESTADO #
-        self.w = {}
-        # Cantidad de protocolos -p- que tienen su sesion -s- en el día -t-
-        for p in P:
-            for s in S[p]:
-                for t in T:
-                    self.w[p,s,t] = self.model.addVar(lb=0, vtype=GRB.INTEGER, name="w[%s,%s,%s]"%(p,s,t))
 
-        self.r= {}
-        # Cantidad de pacientes en la semana del protocolo p
-        for p in P:
-            self.r[p] = self.model.addVar(lb=0,  vtype=GRB.INTEGER, name="r[%s]"%(p))
-
-        # VARIABLES DE ACCIÓN #
-        self.x = {}
-        #Cantiad de protocolos -p- que inician su tratamiento el dia -t-
-        for p in P:
-            for t in T:
-                self.x[p,t] = self.model.addVar(lb=0,  vtype=GRB.INTEGER,  name="x[%s,%s]"%(p,t))
-
-        self.y = {}
-        # Cantidad de protocolos -p- que comienzan su sesion -s- en modulo -m- del dia -t-
-        for p in P:
-            for s in S[p]:
-                for t in T:
-                    for m in M:
-                        self.y[p,s,t,m] = self.model.addVar(lb=0, vtype=GRB.INTEGER, name="y[%s,%s,%s,%s]"%(p,s,t,m))
-
-        self.z =  {}
-        # Cantidad de protocolos -p- que son derivados a sistema privado
-        for p in P:
-            self.z[p] = self.model.addVar(lb=0, vtype=GRB.INTEGER, name="z[%s]"%(p))
-
-        self.u = {}
-        # Cantidad de protocolos -p- que terminan su sesion -s- en el modulo -m- del dia -t-
-        for p in P:
-            for s in S[p]:
-                for t in T:
-                    for m in M:
-                        self.u[p,s,t,m] = self.model.addVar(lb=0, vtype=GRB.INTEGER, name="u[%s,%s,%s,%s]"%(p,s,t,m))
-
-        # VARIABLES DUALES #
-        self.omega = {}
+    def generateConstraints(self):
+        #definición de omega
         for c in C: 
             if c == contador_de_columnas:
                 for p in P: 
                     for s in S[p]:
                         for t in T:
-                            self.omega[c,p,s,t] = self.model.addVar(lb = 0, vtype=GRB.INTEGER, name="omega[%s,%s,%s,%s]"%(c,p,s,t))
                             if (int(t) + 6 - K_ps[p][s]) > 0 and (int(t) + 6) < 13:
-                                self.omega[c,p,s,t] = self.w[p,s,t] - γ * (self.w[p,s,(t + 6)] + self.x[p,(t + 6 - self.K_ps[p][s])])
+                                 self.model.addConstr(self.omega[c,p,s,t] == self.w[p,s,t] - γ * (self.w[p,s,(t + 6)] + self.x[p,(t + 6 - K_ps[p][s])]))
                             else:
-                                self.omega[c,p,s,t] = self.w[p,s,t]
-
-        self.rho = {}
+                                self.model.addConstr(self.omega[c,p,s,t] == self.w[p,s,t])
+        #definicion de rho
         for c in C: 
             if c == contador_de_columnas:
                 for p in P: 
                     self.rho[c,p] = self.r[p] - γ * lambdas[p-1]
 
+
+        #definicion de la esperanza de w
         self.E_w = {}
-        # Esperanza de W
         for p in P:
             for s in S[p]:
                 for t in T:
-                    self.E_w[p,s,t] = self.w[p,s,t] 
-
+                    self.model.addConstr(self.E_w[p,s,t] == self.w[p,s,t]) 
+        
+        
+        #definicion de la esperanza de r
         self.E_r = {}
-        # Esperanza de R
         for p in P: 
-            self.E_r[p] = lambdas[p-1] 
+            self.model.addConstr(self.E_r[p] = lambdas[p-1])
 
-    def generateConstraints(self):
+        #función costos
+        self.k_c = {}
+        for c in C: 
+            if c == contador_de_columnas:
+                self.model.addConstr(self.k_c[c] == quicksum(self.z[p]*CD[p] for p in P) + quicksum(hora_extra * self.u[p,s,t,m] * CM for hora_extra in BE2 for p in P for s in S[p] for t in T for m in range(BR2 + hora_extra, 41)))
+
+
+
         # Restricción 1
         self.model.addConstr((1 - γ) * sum(self.pi[c] for c in C) == 1)
 
