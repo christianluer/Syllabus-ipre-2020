@@ -131,7 +131,7 @@ for p in P:
 # Maestro #
 ###########
 
-maestro = Model("Asignacion")
+maestro = Model("main")
 
 # Variable generación de columnas
 
@@ -222,7 +222,7 @@ for p in P:
 
 # Restricción 1
 
-maestro.addConstr((1 - γ) * sum(pi[c] for c in C) == 1)
+maestro.addConstr((1 - γ) * sum(pi[c] for c in C) == 1, name="R1")
 
 # Restricción 2
 
@@ -232,19 +232,19 @@ for p in P:
 
         for t in T:
             
-            maestro.addConstr(sum((omega_cpst[c,p,s,t] * pi[c]) for c in C) >= E_alpha_w[p,s,t])
+            maestro.addConstr(sum((omega_cpst[c,p,s,t] * pi[c]) for c in C) >= E_alpha_w[p,s,t], name="R2")
 
 # Restricción 3
 
 for p in P: 
 
-    maestro.addConstr(sum((rho_cp[c,p] * pi[c]) for c in C) >= E_alpha_r[p])
+    maestro.addConstr(sum((rho_cp[c,p] * pi[c]) for c in C) >= E_alpha_r[p], name="R3")
 
 # Restricción 4
 
 for c in C: 
 
-    maestro.addConstr(pi[c] >= 0)
+    maestro.addConstr(pi[c] >= 0, name="R4")
 
 
 ####################
@@ -262,4 +262,6 @@ maestro.optimize()
 #maestro.write("output_maestro.ilp")
 
 maestro.printAttr("X")
+
+maestro.printAttr("Pi")
 
