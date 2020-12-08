@@ -113,7 +113,9 @@ class MasterProblem:
         for p in P:
             R_dados[p] = self.R3.Pi
 
-        return duales = {"Beta": beta_dado, "W" : W_dados, "R": "R_dados"}
+        duales = {"Beta": beta_dado, "W" : W_dados, "R": "R_dados"}
+
+        return duales
 
     def solveModel(self):
         self.model.optimize()
@@ -302,7 +304,7 @@ class SubProblem:
         
     def generateObjective(self):
         k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
-        self.f_obj_pr = (1 - γ) * self.beta + quicksum(self.omega[p,s,t] * self.W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P) - k_as
+        self.f_obj_pr = (1 - γ) * self.beta + quicksum(self.omega[p,s,t] * self.W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P)
         self.model.setObjective(self.f_obj_pr, GRB.MAXIMIZE)
     
     #def getNewPattern(self):
@@ -656,7 +658,7 @@ class FaseUnoPricing:
     def generateObjective(self):
         # Funcion costos para k pricing
         self.k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
-        self.f_obj_pr = (1 - γ) * self.Beta + quicksum(self.omega[p,s,t] * self.w[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.r[p] for p in P) - self.k_as
+        self.f_obj_pr = (1 - γ) * self.Beta + quicksum(self.omega[p,s,t] * self.w[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.r[p] for p in P)
         self.model.setObjective(self.f_obj_pr, GRB.MAXIMIZE)
     
     #def getNewPattern(self):
