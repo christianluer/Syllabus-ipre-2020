@@ -3,7 +3,7 @@ import random
 from collections import deque, defaultdict
 from calendario_antiguo import calendario
 import csv
-
+import pandas as pd
 
 
 class Calendario:
@@ -66,6 +66,7 @@ class Calendario:
             paciente.ultima_sesion = dia
             paciente.numero_de_sesiones += 1
             paciente.agendado_en.append([semana, dia])
+            paciente.historial.append([paciente.id, dia, semana, modulo_incial, asiento, paciente.tipo, paciente.numero_sesion])
 
     def contar_horas_extra_dia(self, dia, semana):
         cuenta = 0
@@ -117,10 +118,30 @@ class Calendario:
                 indicador_writer.writerow([f"silla: {ñ[0]}", f"%: {ñ[1]}"])
 
             pass  ## trabajar el string pa pasarlo a excel
+    def to_dataframe(self, semana, dia):
+        columnas = []
+        indices = []
+        for k in range(1, len(self.calendario[semana][dias[dia]][1])+1):
+            indices.append(k)
+        for i in range(1, len(self.calendario[semana][dias[dia]]) + 1):
+            columnas.append(f"asiento: {i}")
+        columnas.append("uso enfermeras")
+        df = pd.DataFrame(columns=columnas, index=indices)
+        contador = 1
+        for j in range(1, len(self.calendario[semana][dias[dia]][1]) + 1):
+            lista = []## 40 modulos
+            for i in self.calendario[semana][dias[dia]]: #14
+                    lista.append(self.calendario[semana][dias[dia]][i][j].paciente)
+            lista.append(self.contar_enfermeras_modulo(dia, semana, contador))
+            df.loc[contador] = lista
+            contador += 1
+        print(df.head(35))
+
 class Paciente:
 
     def __init__(self, tipo):
         self.tipo = tipo
+        self.id = None
         # tipo refiere al tipo de cancer
         self.duracion_sesion_actual = 0  # default, se cambia dinamicamente con la lista del protocolo
         self.numero_sesion = 0  # se inicia en la sesion 0, con esta busco en el protocolo
@@ -132,6 +153,7 @@ class Paciente:
         self.protocolo = list()
         self.numero_paciente = 0
         self.agendado_en = list()
+        self.historial = []
         if self.tipo == 1:
             self.asignar_protocolo(protocolo_1)
         elif self.tipo == 2:
@@ -268,6 +290,7 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cu
                 ñ.numero_paciente = f"p0{cuenta_paciente}"
             else:
                 ñ.numero_paciente = f"p{cuenta_paciente}"
+            ñ.id = cuenta_paciente
             cuenta_paciente += 1
             all_pacientes.pacientes.append(ñ)
         # reviso ahora mis prioridades de los que estaban agendados de la semana anterior parto con lunes, hasta sabado
@@ -345,7 +368,7 @@ if __name__ == "__main__":
     capacidad_enfermeras_regular = 3
     semanas_simulacion = 5
     #### FIN IMPUTS #####
-
+    pacientes_general = set()
     todos_los_pacientes = Lista_pacientes()
     nuevo_calendario = Calendario(calendario, enfermeras, capacidad_enfermeras_regular)
     presentar(nuevo_calendario)
@@ -356,9 +379,33 @@ if __name__ == "__main__":
     semana_actual = 0
     simulacion(espera, agendados, rechazados, nuevo_calendario, cuenta_paciente, todos_los_pacientes, terminados, semanas_simulacion)
 
-
-
-
+    ### dataframes
+    nuevo_calendario.to_dataframe(0,0)
+    big_df = pd.DataFrame(columns=["ID", "Dia", "Semana", "Modulo", "Asiento", "Protocolo", "Sesion", "estado tratamiento"])
+    rechazados2 = set(rechazados.pacientes)
+    for i in rechazados2:
+        for j in i.historial:
+            big_df = big_df.append({"ID": j[0], "Dia": j[1], "Semana": j[2], "Modulo": j[3], "Asiento": j[4], "Protocolo": j[5], "Sesion": j[6], "estado tratamiento": "derivado"}, ignore_index=True)
+    terminados2 = set(terminados.pacientes)
+    for i in terminados2:
+        for j in i.historial:
+            big_df = big_df.append({"ID": j[0], "Dia": j[1], "Semana": j[2], "Modulo": j[3], "Asiento": j[4], "Protocolo": j[5], "Sesion": j[6], "estado tratamiento": "finalizado"}, ignore_index=True)
+    for i in range(0,6):
+        pacientes = set(agendados.prox_semana[i])
+        for k in pacientes:
+            for j in k.historial:
+                big_df = big_df.append(
+                    {"ID": j[0], "Dia": j[1], "Semana": j[2], "Modulo": j[3], "Asiento": j[4], "Protocolo": j[5],
+                    "Sesion": j[6], "estado tratamiento": "En tratamiento"}, ignore_index=True)
+    for l in espera.pacientes:
+        for j in l.historial:
+            big_df = big_df.append(
+                {"ID": j[0], "Dia": j[1], "Semana": j[2], "Modulo": j[3], "Asiento": j[4], "Protocolo": j[5],
+                 "Sesion": j[6], "estado tratamiento": "primera semana"}, ignore_index=True)
+    print(big_df.head(100))
+    xlwriter= pd.ExcelWriter("resumen_pacientes.xlsx")
+    big_df.to_excel(xlwriter, sheet_name="reumen pacientes", index=False)
+    xlwriter.close()
 #### NUEVO DESAFIO ####
 
 
