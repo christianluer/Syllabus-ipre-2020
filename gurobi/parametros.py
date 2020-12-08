@@ -51,18 +51,18 @@ T = [int(k) for k in range(1,21)]
 
 # Costos por protocolo
 
-Costos = [999999999,999999999,999999999]
+Costos = [10000000,10000000,10000000]
 
 CD = dict(zip(P,Costos)) 
 # Asocia los costos cada protocolo con su costo de derivación
 
 # Costo bloque regular
 
-CR = 100 
+CR = 10000 
 
 # Costo bloque extra
 
-CE = 250 
+CE = 25000 
 
 CM = (CE - CR)/4 # Costo marginal por bloque extra de atención 
 
@@ -98,8 +98,8 @@ BE2 = [k for k in range(1, 13)] # Bloques extra nominales
 
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
 
-lambdas = [5, 3, 4] 
-q = {1: 5, 2: 3, 3: 5}
+lambdas = [5, 5, 5] 
+q = {1: 5, 2: 5, 3: 5}
 #CAMBIO PARA QUE NO SEA ALEATORIO
 
 
