@@ -18,12 +18,54 @@ class MasterProblem:
 
         self.model = gu.Model('MasterProblem')
         #input proveniente del pricing
-        self.Omega = input["Omega"]
-        self.Rho = input["Rho"]
-        self.w = input["w_dados"]
-        self.r = input["r_dados"]
-        self.r_prima = input["r_prima_dados"]
-        #self.columnas = input["columnas"] #lista con los indices de todas las columnas que se estan considerando
+        #deje solo las que utiliza el maestro
+        self.columnas = C
+        self.omega = {}
+        self.rho = {}
+        self.w = {}
+        self.r = {}
+        self.r_prima = {}
+        
+        #añadir la nueva columna
+        for c in C:
+
+            for p in P:
+                    for s in S[p]:
+                        for t in T:
+                            self.omega[c,p,s,t] = input[c]['Omega'][p,s,t]
+
+            for p in P:
+                self.rho[c,p] = input[c]['Rho'][p]
+            
+            for p in P:
+                for s in S[p]:
+                    for t in T:
+                        self.w[c,p,s,t] = input[c]['w'][p,s,t]
+            
+            for p in P:
+                for s in S[p]:
+                    for t in T:
+                        self.w_prima[c,p,s,t] = input[c]['w_prima'][p,s,t]
+            
+            for p in P:
+                self.r[c,p] = input[c]['r'][p]
+            
+            for p in P:
+                self.r_prima[c,p] = input[c]['r_prima'][p]
+            
+            self.k_as[c] = input[c]['k_as']
+
+        #definicion de la esperanza de w
+        self.E_w = {}
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    self.E_w[p,s,t] = quicksum(self.w[c,p,s,t] for c in C) / contador_de_columnas
+       
+        # esperanza de r
+        self.E_r = {}
+        for p in P: 
+            self.E_r[p] = quicksum(self.r[c,p] for c in C) / contador_de_columnas
 
     def buildModel(self):
         self.generateVariables()
@@ -37,60 +79,41 @@ class MasterProblem:
         self.pi = model.addVars(C, lb=0.0, ub=GRB.INFINITY, obj=0.0, vtype=GRB.CONTINUOUS, name="Columna ingresada")
 
     def generateConstraints(self):
-        #definición de omega, revisar
-        for c in self.columnas: 
-            if c == contador_de_columnas:
-                for p in P: 
-                    for s in S[p]:
-                        for t in T:
-                            self.model.addContr(self.omega[c,p,s,t] == self.omega[p,s,t])
-       
-        #definicion de rho
-        for c in self.columnas: 
-            if c == contador_de_columnas:
-                for p in P: 
-                    self.model.addContr(self.rho[c,p] == self.rho[p])
-
-        #definicion de la esperanza de w
-        self.E_w = {}
-        for p in P:
-            for s in S[p]:
-                for t in T:
-                    self.model.addConstr(self.E_w[p,s,t] == self.w[p,s,t]) 
-        
-        #definicion de la esperanza de r
-        self.E_r = {}
-        for p in P: 
-            self.model.addConstr(self.E_r[p] == r_prima[p])
-
-        #función costos
-        self.k_c = {}
-        for c in self.columnas: 
-            if c == contador_de_columnas:
-                self.model.addConstr(self.k_c[c] == quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,BR+l]*l  for p in P for s in S[p] for t in T for l in range(1, BE+1))*(CE-CR))
 
         # Restricción 1
-        self.model.addConstr((1 - γ) * sum(self.pi[c] for c in C) == 1, name= "beta")
+        self.R1 = {}
+        self.R1= self.model.addConstr((1 - γ) * sum(self.pi[c] for c in C) == 1, name= "beta")
 
         # Restricción 2
+        self.R2 = {}
         for p in P: 
             for s in S[p]:
                 for t in T:     
-                    self.model.addConstr(sum((self.omega[c,p,s,t] * self.pi[c]) for c in C) >= self.E_w[p,s,t], name= "W")
+                    self.R1 = self.model.addConstr(sum((self.omega[c,p,s,t] * self.pi[c]) for c in C) >= self.E_w[p,s,t], name= "W")
 
         # Restricción 3
+        self.R3 = {}
         for p in P: 
-            self.model.addConstr(sum((self.rho[c,p] * self.pi[c]) for c in C) >= self.E_r[p], name = "R")
+            self.R3 = self.model.addConstr(sum((self.rho[c,p] * self.pi[c]) for c in C) >= self.E_r[p], name = "R")
 
     def generateObjective(self):
         self.model.setObjective(sum((self.k_c[c] * self.pi[c]) for c in C), GRB.MINIMIZE)
 
-    #esto aun no se como usarlo
-    #def addColumn(self, objective, newPattern): 
-    #    ctName = ('PatternUseVar[%s]' %len(self.model.getVars()))
-    #    newColumn = gu.Column(newPattern, self.model.getConstrs())
-    #    self.model.addVar(vtype = gu.GRB.INTEGER, lb=0, obj=objective, column=newColumn, name=ctName)
-    #    self.model.update()
+    def generateDuals (self):
+        beta_dado = {}
+        beta_dado = self.R1.Pi
+
+        W_dados = {}
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    W_dados[p,s,t] = self.R2.Pi
+
+        R_dados = {}
+        for p in P:
+            R_dados[p] = self.R3.Pi
+
+        return duales = {"Beta": beta_dado, "W" : W_dados, "R": "R_dados"}
 
     def solveModel(self):
         self.model.optimize()
@@ -101,7 +124,7 @@ class MasterProblem:
 class SubProblem:
     def __init__(self, input):
         self.model = gu.Model('Pricing')
-        self.Omega = input["Omega"] # obtenido a partir del dual del maestro
+        self.W = input["Omega"] # obtenido a partir del dual del maestro
         self.Rho = input["Rho"] # obtenido a partir del dual del maestro
         self.Beta = input["Beta"] # obtenido a partir del dual del maestro
         self.llegadas = input['Llegadas']
@@ -279,11 +302,57 @@ class SubProblem:
         
     def generateObjective(self):
         k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
-        self.f_obj_pr = (1 - γ) * self.beta + quicksum(self.omega[p,s,t] * W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P) - k_as
+        self.f_obj_pr = (1 - γ) * self.beta + quicksum(self.omega[p,s,t] * self.W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P) - k_as
         self.model.setObjective(self.f_obj_pr, GRB.MAXIMIZE)
     
     #def getNewPattern(self):
         #return self.model.gettAtr('X', self.model.getVars())
+
+    def entregarInformacion(self):
+        # Rho
+        info_rho = {}
+        for p in P:
+            info_rho[p] = self.rho[p].x
+        # Omega
+        info_omega = {}
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    info_omega[p,s,t] = self.omega[p,s,t].x
+        # w
+        info_w = {}
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    info_w[p,s,t] = self.w[p,s,t].x
+        # w prima
+        info_w_prima = {}
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    info_w_prima[p,s,t] = self.w_prima[p,s,t].x
+        # r
+        info_r = {}
+        for p in P:
+            info_r[p] = self.r[p]
+        # r_prima
+        info_r_prima = {}
+        for p in P:
+            info_r_prima[p] = self.r_prima[p]
+        # z
+        info_z =  {}
+        for p in P:
+            info_z[p] = self.z[p].x
+        # u
+        info_u = {}
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    for m in M:
+                        info_u[p,s,t,m] = self.u[p,s,t,m].x
+        columna_actual = {'Rho': info_rho, 'Omega': info_omega, 'w': info_w, 'w_prima': info_w_prima, 'r': info_r, 'r_prima': info_r_prima, 'z': info_z, 'u': info_u, 'k_as': self.k_as}
+        informacion[contador_de_columnas] = columna_actual 
+
 
     def solveModel(self):
         self.model.optimize()
