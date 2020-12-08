@@ -4,6 +4,9 @@ import gurobipy as gu
 from parametros import *
 
 
+contador_de_columnas = 1
+C = [k for k in range(1, contador_de_columnas + 1)]
+
 ########################
 # DEFINICIÓN DE CLASES #
 ########################
@@ -285,20 +288,62 @@ class SubProblem:
     def solveModel(self):
         self.model.optimize()
 
-
-# Fase 1 #
+##########
+# FASE 1 #
+##########
 
 class FaseUnoMasterProblem:
     def __init__(self, input):
-
         self.model = gu.Model('MasterProblem Fase Uno')
-        #input proveniente del pricing
-        self.Omega = input["Omega"]
-        self.Rho = input["Rho"]
-        self.w = input["w"]
-        self.r = input["r"]
-        self.r_prima = input["r"]
-        #self.columnas = input["columnas"] #lista con los indices de todas las columnas que se estan considerando
+        self.columnas = C
+
+        self.omega = {}
+        self.rho = {}
+        self.w = {}
+        self.w_prima = {}
+        self.r = {}
+        self.r_prima = {}
+        self.z = {}
+        self.u = {}
+        self.k_as = {}
+        
+        for c in C:
+
+            for p in P:
+                    for s in S[p]:
+                        for t in T:
+                            self.omega[c,p,s,t] = input[c]['Omega'][p,s,t]
+
+            for p in P:
+                self.rho[c,p] = input[c]['Rho'][p]
+            
+            for p in P:
+                for s in S[p]:
+                    for t in T:
+                        self.w[c,p,s,t] = input[c]['w'][p,s,t]
+            
+            for p in P:
+                for s in S[p]:
+                    for t in T:
+                        self.w_prima[c,p,s,t] = input[c]['w_prima'][p,s,t]
+            
+            for p in P:
+                self.r[c,p] = input[c]['r'][p]
+            
+            for p in P:
+                self.r_prima[c,p] = input[c]['r_prima'][p]
+            
+            for p in P:
+                self.z[c,p] = input[c]['z'][p]
+            
+            for p in P:
+                for s in S[p]:
+                    for t in T:
+                        for m in M:
+                            self.u[c,p,s,t,m] = input[c]['u'][p,s,t,m]
+            
+            self.k_as[c] = input[c]['k_as']
+
 
     def buildModel(self):
         self.generateVariables()
@@ -307,17 +352,6 @@ class FaseUnoMasterProblem:
         self.model.update()
 
     def generateVariables(self):
-        # VARIABLES ADICIONALES #
-        #self.omega = {}
-        #for p in P:
-         #   for s in S[p]:
-          #      for t in T:
-           #         self.omega[p,s,t] = self.model.addVar(lb=0,  vtype=GRB.CONTINUOUS, name="omega[%s,%s,%s]"%(p,s,t))
-
-        #self.rho = {}
-        #for p in P:
-         #   self.rho[p] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="rho[%s]"%(p))
-
         # VARIABLES #
         self.pi = {}
         self.pi = self.model.addVars(C, lb=0.0, ub=GRB.INFINITY, obj=0.0, vtype=GRB.CONTINUOUS, name="Columna ingresada")
@@ -328,67 +362,42 @@ class FaseUnoMasterProblem:
             self.a_beta[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_beta[%s]"%(c))
 
         self.a_omega = {}
-        self.a_omega = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_omega")
+        for c in C:
+            self.a_omega[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_omega[%s]"%(c))
 
         self.a_rho = {}
-        self.a_rho = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_rho")
+        for c in C:
+            self.a_rho[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_rho[%s]"%(c))
 
-
-    def generateConstraints(self):
-        # Definición de omega, revisar
-        for c in self.columnas: 
-            if c == contador_de_columnas:
-                for p in P: 
-                    for s in S[p]:
-                        for t in T:
-                            self.model.addContr(self.omega[c,p,s,t] == self.omega[p,s,t])
-       
-        # Definicion de rho
-        for c in self.columnas: 
-            if c == contador_de_columnas:
-                for p in P: 
-                    self.model.addContr(self.rho[c,p] == self.rho[p])
-
-        # Definicion de la esperanza de w
+        # ESPERANZAS #
+        # w
         self.E_w = {}
         for p in P:
             for s in S[p]:
                 for t in T:
-                    self.model.addConstr(self.E_w[p,s,t] == self.w[p,s,t]) 
-        
-        # Definicion de la esperanza de r
+                    self.E_w[p,s,t] = quicksum(self.w[c,p,s,t] for c in C) / contador_de_columnas
+        # r
         self.E_r = {}
         for p in P: 
-            self.model.addConstr(self.E_r[p] == r_prima[p])
+            self.E_r[p] = quicksum(self.r[c,p] for c in C) / contador_de_columnas
 
-        # Función costos
-        self.k_c = {}
-        for c in self.columnas: 
-            if c == contador_de_columnas:
-                self.model.addConstr(self.k_c[c] == quicksum(CD[p] * z[p] for p in P) + quicksum(u[p,s,t,BR+l]*l  for p in P for s in S[p] for t in T for l in range(1, BE+1))*(CE-CR))
 
+    def generateConstraints(self):
         # Restricción 1
-        self.model.addConstr((1 - γ) * sum(self.pi[c] + self.a_beta[c] for c in C) == 1, name= "Beta")
+        self.model.addConstr((1 - γ) * quicksum(self.pi[c] + self.a_beta[c] for c in C) == 1, name= "Beta")
 
         # Restricción 2
         for p in P: 
             for s in S[p]:
                 for t in T:     
-                    self.model.addConstr(sum((self.omega[c,p,s,t] * self.pi[c]) for c in C) + self.a_omega >= self.E_w[p,s,t], name= "Omega")
+                    self.model.addConstr(quicksum((self.omega[c,p,s,t] * self.pi[c]) + self.a_omega[c] for c in C) >= self.E_w[p,s,t], name= "Omega")
 
         # Restricción 3
         for p in P: 
-            self.model.addConstr(sum((self.rho[c,p] * self.pi[c]) for c in C) + self.a_rho >= self.E_r[p], name = "Rho")
+            self.model.addConstr(quicksum((self.rho[c,p] * self.pi[c]) + self.a_rho[c] for c in C) >= self.E_r[p], name = "Rho")
 
     def generateObjective(self):
-        self.model.setObjective(sum(self.a_beta[c] for c in C) + self.a_omega + self.a_rho, GRB.MINIMIZE)
-
-    #esto aun no se como usarlo
-    #def addColumn(self, objective, newPattern): 
-    #    ctName = ('PatternUseVar[%s]' %len(self.model.getVars()))
-    #    newColumn = gu.Column(newPattern, self.model.getConstrs())
-    #    self.model.addVar(vtype = gu.GRB.INTEGER, lb=0, obj=objective, column=newColumn, name=ctName)
-    #    self.model.update()
+        self.model.setObjective(quicksum(self.a_beta[c] + self.a_omega[c] + self.a_rho[c] for c in C), GRB.MINIMIZE)
 
     def solveModel(self):
         self.model.optimize()
@@ -577,8 +586,8 @@ class FaseUnoPricing:
         
     def generateObjective(self):
         # Funcion costos para k pricing
-        k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
-        self.f_obj_pr = (1 - γ) * self.Beta + quicksum(self.omega[p,s,t] * self.w[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.r[p] for p in P) - k_as
+        self.k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
+        self.f_obj_pr = (1 - γ) * self.Beta + quicksum(self.omega[p,s,t] * self.w[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.r[p] for p in P) - self.k_as
         self.model.setObjective(self.f_obj_pr, GRB.MAXIMIZE)
     
     #def getNewPattern(self):
@@ -590,6 +599,55 @@ class FaseUnoPricing:
         #self.model.printAttr("X")
         #self.model.gettAtr('X', self.model.getVars())
 
+    def entregarInformacion(self):
+        # Rho
+        info_rho = {}
+        for p in P:
+            info_rho[p] = self.rho[p].x
+        # Omega
+        info_omega = {}
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    info_omega[p,s,t] = self.omega[p,s,t].x
+        # w
+        info_w = {}
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    info_w[p,s,t] = self.w[p,s,t].x
+        # w prima
+        info_w_prima = {}
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    info_w_prima[p,s,t] = self.w_prima[p,s,t].x
+        # r
+        info_r = {}
+        for p in P:
+            info_r[p] = self.r[p]
+        # r_prima
+        info_r_prima = {}
+        for p in P:
+            info_r_prima[p] = self.r_prima[p]
+        # z
+        info_z =  {}
+        for p in P:
+            info_z[p] = self.z[p].x
+        # u
+        info_u = {}
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    for m in M:
+                        info_u[p,s,t,m] = self.u[p,s,t,m].x
+        # k_as
+        #info_k_as = k_as
+
+        columna_actual = {'Rho': info_rho, 'Omega': info_omega, 'w': info_w, 'w_prima': info_w_prima, 'r': info_r, 'r_prima': info_r_prima, 'z': info_z, 'u': info_u, 'k_as': self.k_as}
+        informacion[contador_de_columnas] = columna_actual 
+
+
 
 ##########################
 # GENERACIÓN DE COLUMNAS #
@@ -600,45 +658,34 @@ class FaseUnoPricing:
 # Llegada Protocolo 2 - 5 pacientes - Poisson lamda=5
 # Llegada Protocolo 3 - 5 pacientes - Poisson lamda=5
 
+informacion = {}
+
 # Contruimos la primera columna
-informacion = {'Llegadas': q, 'Omega': 1, 'Rho': 1, 'Beta': 1}
-Fase1Pricing = FaseUnoPricing(informacion)
+diccionario = {'Llegadas': q, 'Omega': 1, 'Rho': 1, 'Beta': 1}
+Fase1Pricing = FaseUnoPricing(diccionario)
 Fase1Pricing.buildModel()
 Fase1Pricing.solveModel()
-
-# Obtenemos valores para las variables
-informacion = {'Rho': Fase1Pricing.rho, 'Omega': Fase1Pricing.omega, 'w': Fase1Pricing.w, 'r': Fase1Pricing.r, 'r_prima': Fase1Pricing.r_prima}
+Fase1Pricing.entregarInformacion()
 
 # Inicializamos el Maestro con  la columna generada
 Fase1Maestro = FaseUnoMasterProblem(informacion)
 Fase1Maestro.buildModel()
 Fase1Maestro.solveModel()
 
+contador_de_columnas += 1
+C = [k for k in range(1, contador_de_columnas + 1)]
 
-#last_obj_master = 1
-actual_obj_master = 0
-actual_pricing_value = -1000
-
-
-columnas = [0]
-column_to_enter = len(columnas)
-
-# POR AHORA SE DEJAN EN VALOR CERO, PERO HAY QUE CAMBIARLOS DPS a ser matrices [l,g]
-
-# OBTENIDOS DE LA FASE I
-omega_dado = omega_primera_col # que sea una lista, donde cada posicion es una columna, y en c/ columna tengo un dict con chi_pr[l,g]
-rho_dados = rho_primera_col
-w_dados = w_primera_col
-r_dados = r_primera_col
-r_prima_dados = y_primera_col
-
+while (Fase1Maestro.model.ObjVal != 0 and contador_de_columnas < 1000):
+    print('ITERANDO')
+    break
+print('LISTOCO')
 
 ###############
 # ITERACIONES #
 ###############
 
 modelImprovable = True
-while (modelImprovable and len(columnas) < 1000):
+while (modelImprovable and contador_de_columnas < 1000):
   
     last_obj_master = actual_obj_master
     
