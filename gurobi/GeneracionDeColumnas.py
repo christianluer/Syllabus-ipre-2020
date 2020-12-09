@@ -14,7 +14,7 @@ C = [k for k in range(1, contador_de_columnas + 1)]
 # PROBLEMA MAESTRO #
 
 class MasterProblem:
-    def __init__(self, input, k):
+    def __init__(self, input):
 
         self.model = gu.Model('MasterProblem')
         #input proveniente del pricing
@@ -29,7 +29,7 @@ class MasterProblem:
         self.k_as= {}
         
         #añadir la nueva columna
-        for c in C:
+        for c in self.columnas:
 
             for p in P:
                     for s in S[p]:
@@ -60,7 +60,7 @@ class MasterProblem:
                     for t in T:
                         self.w_prima[c,p,s,t] = input[c]['w_prima'][p,s,t]           
             
-            self.k_as[c] = k[c]
+            self.k_as[c] = input[c]['k_as']
 
         #definicion de la esperanza de w
         self.E_w = {}
@@ -83,7 +83,7 @@ class MasterProblem:
     def generateVariables(self):
 
         self.pi = {}
-        for c in C: 
+        for c in self.columnas: 
             self.pi[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="pi[%s]"%(c))
 
     def generateConstraints(self):
@@ -105,7 +105,7 @@ class MasterProblem:
             self.R3 = self.model.addConstr(sum((self.rho[c,p] * self.pi[c]) for c in C) >= self.E_r[p], name = "R")
 
     def generateObjective(self):
-        self.model.setObjective(quicksum((self.k_as[c] * self.pi[c]) for c in C), GRB.MINIMIZE)
+        self.model.setObjective(quicksum((self.k_as[c] * self.pi[c]) for c in self.columnas), GRB.MINIMIZE)
 
     def entregarDuales(self): 
         beta_dado = {}
@@ -206,6 +206,8 @@ class SubProblem:
         for p in P:
             self.rho[p] = self.model.addVar(lb=0,   vtype=GRB.CONTINUOUS, name="rho[%s]"%(p))
         
+        self.k_as = {}
+        self.k_as = self.model.addVar(lb = 0, vtype=GRB.CONTINUOUS, name="k")
 
     def generateConstraints(self):
         
@@ -306,10 +308,15 @@ class SubProblem:
         for p in P:
 
             self.R20[p] = self.model.addConstr((self.rho[p] == self.r[p] - (γ *self.r_prima[p])), name="Definicion rho")
+        
 
+
+        #DEF
+        self.Rx = {}
+        self.Rx = self.model.addConstr(self.k_as == quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR))
         
     def generateObjective(self):
-        self.k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
+       
         self.f_obj_pr = (1 - γ) * self.Beta + quicksum(self.omega[p,s,t] * self.W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P)- self.k_as
         self.model.setObjective(self.f_obj_pr, GRB.MAXIMIZE)
     
@@ -340,11 +347,11 @@ class SubProblem:
         # r
         info_r = {}
         for p in P:
-            info_r[p] = self.r[p]
+            info_r[p] = self.r[p].x
         # r_prima
         info_r_prima = {}
         for p in P:
-            info_r_prima[p] = self.r_prima[p]
+            info_r_prima[p] = self.r_prima[p].x
         # z
         info_z =  {}
         for p in P:
@@ -356,9 +363,14 @@ class SubProblem:
                 for t in T:
                     for m in M:
                         info_u[p,s,t,m] = self.u[p,s,t,m].x
-       
-        columna_actual = {'Rho': info_rho, 'Omega': info_omega, 'w': info_w, 'w_prima': info_w_prima, 'r': info_r, 'r_prima': info_r_prima, 'z': info_z, 'u': info_u, 'k_as': self.k_as}
-        informacion[contador_de_columnas] = columna_actual 
+
+        info_k_as = {}
+        info_k_as= self.k_as.x
+
+        columna_actual = {'Rho': info_rho, 'Omega': info_omega, 'w': info_w, 'w_prima': info_w_prima, 'r': info_r, 'r_prima': info_r_prima, 'z': info_z, 'u': info_u, 'k_as': info_k_as}
+        for c in C:
+            informacion[c] = columna_actual 
+
 
 
     def solveModel(self):
@@ -578,7 +590,10 @@ class FaseUnoPricing:
         self.rho = {}
         for p in P:
             self.rho[p] = self.model.addVar(lb=0,   vtype=GRB.CONTINUOUS, name="rho[%s]"%(p))
-        
+
+        self.k_as = {}
+        self.k_as = self.model.addVar(lb = 0, vtype=GRB.CONTINUOUS, name="k")
+
 
     def generateConstraints(self):
         
@@ -680,10 +695,12 @@ class FaseUnoPricing:
 
             self.R20[p] = self.model.addConstr((self.rho[p] == self.r[p] - (γ *self.r_prima[p])), name="Definicion rho")
 
+        self.Rx = {}
+        self.Rx = self.model.addConstr(self.k_as == quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR))
         
     def generateObjective(self):
         # Funcion costos para k pricing
-        self.k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
+        #self.k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
         self.f_obj_pr = (1 - γ) * self.Beta + quicksum(self.omega[p,s,t] * self.W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P)
         self.model.setObjective(self.f_obj_pr, GRB.MAXIMIZE)
 
@@ -736,10 +753,10 @@ class FaseUnoPricing:
                 for t in T:
                     for m in M:
                         info_u[p,s,t,m] = self.u[p,s,t,m].x
-        # k_as
-        #info_k_as = k_as
+        info_k_as = {}
+        info_k_as= self.k_as.x
 
-        columna_actual = {'Rho': info_rho, 'Omega': info_omega, 'w': info_w, 'w_prima': info_w_prima, 'r': info_r, 'r_prima': info_r_prima, 'z': info_z, 'u': info_u, 'k_as': self.k_as}
+        columna_actual = {'Rho': info_rho, 'Omega': info_omega, 'w': info_w, 'w_prima': info_w_prima, 'r': info_r, 'r_prima': info_r_prima, 'z': info_z, 'u': info_u, 'k_as': info_k_as}
         informacion[contador_de_columnas] = columna_actual 
 
 
@@ -781,7 +798,6 @@ Fase1Pricing.buildModel()
 Fase1Pricing.solveModel()
 Fase1Pricing.entregarInformacion()
 
-
 # Inicializamos el Maestro con  la columna generada
 Fase1Maestro = FaseUnoMasterProblem(informacion)
 Fase1Maestro.buildModel()
@@ -814,18 +830,17 @@ base_factible = informacion
 valor_objetivo_maestro = 0 
 contador_de_columnas = 1
 valor_objetivo_pricing = 0
+C = [k for k in range(1, contador_de_columnas + 1)]
 
 
-#el k_as no esta entrando a informacion
-# por ahora para que corra el codigo
-k_as = {1: 1}
 modelImprovable = True
 while modelImprovable == True: 
-      
-    master_solution = MasterProblem(informacion, k_as)
+    print("MASTER")
+    master_solution = MasterProblem(informacion)
     master_solution.buildModel()
     master_solution.model.optimize()
-
+    print(contador_de_columnas)
+    print("_----------------------------------------------")
     #Actualizamos resultado
     valor_objetivo_maestro = master_solution.model.objVal
     
@@ -833,26 +848,27 @@ while modelImprovable == True:
     duales = master_solution.entregarDuales()
 
     # Una vez resuelto el Master, usamos estos datos como input para el pricing
-     
+    print("PRICING")
     pricing_solution = SubProblem(duales)
 
     pricing_solution.buildModel()
     pricing_solution.model.optimize()
+    pricing_solution.model.printAttr("X")
 
     #revisamos el valor del pricing
     valor_objetivo_pricing = pricing_solution.model.objVal
     
     #si el valor es positivo, aun se puede mejorar
     # se añade nueva columna
+    contador_de_columnas += 1
+    C = [k for k in range(1, contador_de_columnas + 1)]
+
     if valor_objetivo_pricing>0:
         modelImprovable = True
         #conseguimos la columna a ser ingresada
         informacion = {}
         pricing_solution.entregarInformacion()
         
-        contador_de_columnas += 1
-        C = [k for k in range(1, contador_de_columnas + 1)]
-
     else:
         modelImprovable = False
     
