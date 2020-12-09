@@ -14,7 +14,7 @@ C = [k for k in range(1, contador_de_columnas + 1)]
 # PROBLEMA MAESTRO #
 
 class MasterProblem:
-    def __init__(self, input):
+    def __init__(self, input, k):
 
         self.model = gu.Model('MasterProblem')
         #input proveniente del pricing
@@ -25,6 +25,8 @@ class MasterProblem:
         self.w = {}
         self.r = {}
         self.r_prima = {}
+        self.w_prima = {}
+        self.k_as= {}
         
         #añadir la nueva columna
         for c in C:
@@ -52,20 +54,25 @@ class MasterProblem:
             
             for p in P:
                 self.r_prima[c,p] = input[c]['r_prima'][p]
+
+            for p in P:
+                for s in S[p]:
+                    for t in T:
+                        self.w_prima[c,p,s,t] = input[c]['w_prima'][p,s,t]           
             
-            self.k_as[c] = input[c]['k_as']
+            self.k_as[c] = k[c]
 
         #definicion de la esperanza de w
         self.E_w = {}
         for p in P:
             for s in S[p]:
                 for t in T:
-                    self.E_w[p,s,t] = quicksum(self.w[c,p,s,t] for c in C) / contador_de_columnas
+                    self.E_w[p,s,t] = quicksum(self.w[c,p,s,t] for c in C) / len(C)
        
         # esperanza de r
         self.E_r = {}
         for p in P: 
-            self.E_r[p] = quicksum(self.r[c,p] for c in C) / contador_de_columnas
+            self.E_r[p] = quicksum(self.r[c,p] for c in C) / len(C)
 
     def buildModel(self):
         self.generateVariables()
@@ -76,7 +83,8 @@ class MasterProblem:
     def generateVariables(self):
 
         self.pi = {}
-        self.pi = model.addVars(C, lb=0.0, ub=GRB.INFINITY, obj=0.0, vtype=GRB.CONTINUOUS, name="Columna ingresada")
+        for c in C: 
+            self.pi[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="pi[%s]"%(c))
 
     def generateConstraints(self):
 
@@ -89,7 +97,7 @@ class MasterProblem:
         for p in P: 
             for s in S[p]:
                 for t in T:     
-                    self.R1 = self.model.addConstr(sum((self.omega[c,p,s,t] * self.pi[c]) for c in C) >= self.E_w[p,s,t], name= "W")
+                    self.R2 = self.model.addConstr(sum((self.omega[c,p,s,t] * self.pi[c]) for c in C) >= self.E_w[p,s,t], name= "W")
 
         # Restricción 3
         self.R3 = {}
@@ -97,7 +105,7 @@ class MasterProblem:
             self.R3 = self.model.addConstr(sum((self.rho[c,p] * self.pi[c]) for c in C) >= self.E_r[p], name = "R")
 
     def generateObjective(self):
-        self.model.setObjective(sum((self.k_c[c] * self.pi[c]) for c in C), GRB.MINIMIZE)
+        self.model.setObjective(quicksum((self.k_as[c] * self.pi[c]) for c in C), GRB.MINIMIZE)
 
     def entregarDuales(self): 
         beta_dado = {}
@@ -114,7 +122,7 @@ class MasterProblem:
             R_dados[p] = self.R3.Pi
 
         duales = {'Beta': beta_dado, 'W' : W_dados, 'R': R_dados}
-
+        return(duales)
 
     def solveModel(self):
         self.model.optimize()
@@ -128,7 +136,6 @@ class SubProblem:
         self.W = input['W'] # obtenido a partir del dual del maestro
         self.R = input['R'] # obtenido a partir del dual del maestro
         self.Beta = input['Beta'] # obtenido a partir del dual del maestro
-        self.llegadas = input['Llegadas']
 
     def buildModel(self):
         self.generateVariables()
@@ -303,7 +310,7 @@ class SubProblem:
         
     def generateObjective(self):
         self.k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
-        self.f_obj_pr = (1 - γ) * self.beta + quicksum(self.omega[p,s,t] * self.W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P)- self.k_as
+        self.f_obj_pr = (1 - γ) * self.Beta + quicksum(self.omega[p,s,t] * self.W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P)- self.k_as
         self.model.setObjective(self.f_obj_pr, GRB.MAXIMIZE)
     
 
@@ -349,6 +356,7 @@ class SubProblem:
                 for t in T:
                     for m in M:
                         info_u[p,s,t,m] = self.u[p,s,t,m].x
+       
         columna_actual = {'Rho': info_rho, 'Omega': info_omega, 'w': info_w, 'w_prima': info_w_prima, 'r': info_r, 'r_prima': info_r_prima, 'z': info_z, 'u': info_u, 'k_as': self.k_as}
         informacion[contador_de_columnas] = columna_actual 
 
@@ -422,9 +430,11 @@ class FaseUnoMasterProblem:
     def generateVariables(self):
         # VARIABLES #
         self.pi = {}
-        self.pi = self.model.addVars(C, lb=0.0, ub=GRB.INFINITY, obj=0.0, vtype=GRB.CONTINUOUS, name="Columna ingresada")
-
+        for c in C: 
+            self.pi[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="pi[%s]"%(c))
+        
         # VARIABLES ARTIFICIALES #
+    
         self.a_beta = {}
         for c in C:
             self.a_beta[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_beta[%s]"%(c))
@@ -452,17 +462,20 @@ class FaseUnoMasterProblem:
 
     def generateConstraints(self):
         # Restricción 1
-        self.model.addConstr((1 - γ) * quicksum(self.pi[c] + self.a_beta[c] for c in C) == 1, name= "Beta")
+        R1 = {}
+        R1 = self.model.addConstr((1 - γ) * quicksum(self.pi[c] + self.a_beta[c] for c in C) == 1, name= "Beta")
 
         # Restricción 2
+        R2 = {}
         for p in P: 
             for s in S[p]:
                 for t in T:     
-                    self.model.addConstr(quicksum((self.omega[c,p,s,t] * self.pi[c]) + self.a_omega[c] for c in C) >= self.E_w[p,s,t], name= "Omega")
+                    R2 = self.model.addConstr(quicksum((self.omega[c,p,s,t] * self.pi[c]) + self.a_omega[c] for c in C) >= self.E_w[p,s,t], name= "Omega")
 
         # Restricción 3
+        R3 = {}
         for p in P: 
-            self.model.addConstr(quicksum((self.rho[c,p] * self.pi[c]) + self.a_rho[c] for c in C) >= self.E_r[p], name = "Rho")
+            R3 = self.model.addConstr(quicksum((self.rho[c,p] * self.pi[c]) + self.a_rho[c] for c in C) >= self.E_r[p], name = "Rho")
 
     def generateObjective(self):
         self.model.setObjective(quicksum(self.a_beta[c] + self.a_omega[c] + self.a_rho[c] for c in C), GRB.MINIMIZE)
@@ -740,32 +753,50 @@ class FaseUnoPricing:
 # Llegada Protocolo 2 - 5 pacientes - Poisson lamda=5
 # Llegada Protocolo 3 - 5 pacientes - Poisson lamda=5
 
+
+W_inicial = {}
+
+for p in P:
+
+    for s in S[p]:
+
+        for t in T:
+
+            W_inicial[p,s,t] = 1
+
+R_incial = {}
+
+for p in P:
+
+    R_incial[p] = 1
+
 #iteracion de fase 1
 informacion = {}
 
 # Contruimos la primera columna
-diccionario = {'Llegadas': q, 'W': 1, 'R': 1, 'Beta': 1}
+diccionario = {'Llegadas': q, 'W': W_inicial, 'R': R_incial, 'Beta': 1}
 #va a tirar un error, beta es un valor, pero W depende de p s y t
 Fase1Pricing = FaseUnoPricing(diccionario)
 Fase1Pricing.buildModel()
 Fase1Pricing.solveModel()
 Fase1Pricing.entregarInformacion()
 
+
 # Inicializamos el Maestro con  la columna generada
 Fase1Maestro = FaseUnoMasterProblem(informacion)
 Fase1Maestro.buildModel()
 Fase1Maestro.solveModel()
 
-contador_de_columnas += 1
-C = [k for k in range(1, contador_de_columnas + 1)]
+#contador_de_columnas += 1
+#C = [k for k in range(1, contador_de_columnas + 1)]
 
 
 
 
-while (Fase1Maestro.model.ObjVal != 0 and contador_de_columnas < 1000):
-    print('ITERANDO')
-    break
-print('LISTOCO')
+#while (Fase1Maestro.model.ObjVal != 0 and contador_de_columnas < 1000):
+   # print('ITERANDO')
+    #break
+#print('LISTOCO')
 
 
 
@@ -781,14 +812,17 @@ base_factible = informacion
 #DEL PROBLEMA:
 
 valor_objetivo_maestro = 0 
-contador_de_columnas = 0
+contador_de_columnas = 1
 valor_objetivo_pricing = 0
 
 
+#el k_as no esta entrando a informacion
+# por ahora para que corra el codigo
+k_as = {1: 1}
 modelImprovable = True
 while modelImprovable == True: 
       
-    master_solution = MasterProblem(informacion)
+    master_solution = MasterProblem(informacion, k_as)
     master_solution.buildModel()
     master_solution.model.optimize()
 
@@ -796,8 +830,7 @@ while modelImprovable == True:
     valor_objetivo_maestro = master_solution.model.objVal
     
     #requerimos los beta, W y R (duales del maestro):
-    duales = {}
-    master_solution.entregarDuales()
+    duales = master_solution.entregarDuales()
 
     # Una vez resuelto el Master, usamos estos datos como input para el pricing
      
@@ -806,7 +839,7 @@ while modelImprovable == True:
     pricing_solution.buildModel()
     pricing_solution.model.optimize()
 
-|   #revisamos el valor del pricing
+    #revisamos el valor del pricing
     valor_objetivo_pricing = pricing_solution.model.objVal
     
     #si el valor es positivo, aun se puede mejorar
