@@ -99,7 +99,7 @@ class MasterProblem:
     def generateObjective(self):
         self.model.setObjective(sum((self.k_c[c] * self.pi[c]) for c in C), GRB.MINIMIZE)
 
-    def generateDuals (self):
+    def entregarDuales(self): 
         beta_dado = {}
         beta_dado = self.R1.Pi
 
@@ -113,9 +113,8 @@ class MasterProblem:
         for p in P:
             R_dados[p] = self.R3.Pi
 
-        duales = {"Beta": beta_dado, "W" : W_dados, "R": "R_dados"}
+        duales = {'Beta': beta_dado, 'W' : W_dados, 'R': R_dados}
 
-        return duales
 
     def solveModel(self):
         self.model.optimize()
@@ -126,9 +125,9 @@ class MasterProblem:
 class SubProblem:
     def __init__(self, input):
         self.model = gu.Model('Pricing')
-        self.W = input["Omega"] # obtenido a partir del dual del maestro
-        self.Rho = input["Rho"] # obtenido a partir del dual del maestro
-        self.Beta = input["Beta"] # obtenido a partir del dual del maestro
+        self.W = input['W'] # obtenido a partir del dual del maestro
+        self.R = input['R'] # obtenido a partir del dual del maestro
+        self.Beta = input['Beta'] # obtenido a partir del dual del maestro
         self.llegadas = input['Llegadas']
 
     def buildModel(self):
@@ -303,12 +302,10 @@ class SubProblem:
 
         
     def generateObjective(self):
-        k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
-        self.f_obj_pr = (1 - γ) * self.beta + quicksum(self.omega[p,s,t] * self.W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P)
+        self.k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
+        self.f_obj_pr = (1 - γ) * self.beta + quicksum(self.omega[p,s,t] * self.W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P)- self.k_as
         self.model.setObjective(self.f_obj_pr, GRB.MAXIMIZE)
     
-    #def getNewPattern(self):
-        #return self.model.gettAtr('X', self.model.getVars())
 
     def entregarInformacion(self):
         # Rho
@@ -473,12 +470,28 @@ class FaseUnoMasterProblem:
     def solveModel(self):
         self.model.optimize()
 
+    def entregarDuales(self):
+        beta_dado = {}
+        beta_dado = self.R1.Pi
+
+        W_dados = {}
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    W_dados[p,s,t] = self.R2.Pi
+
+        R_dados = {}
+        for p in P:
+            R_dados[p] = self.R3.Pi
+
+        duales = {'Beta': beta_dado, 'W' : W_dados, 'R': R_dados}
+
 
 class FaseUnoPricing:
     def __init__(self, input):
         self.model = gu.Model('FaseUno Pricing')
-        self.Omega = input["Omega"] # obtenido a partir del dual del maestro
-        self.Rho = input["Rho"] # obtenido a partir del dual del maestro
+        self.W = input["W"] # obtenido a partir del dual del maestro
+        self.R = input["R"] # obtenido a partir del dual del maestro
         self.Beta = input["Beta"] # obtenido a partir del dual del maestro
         self.llegadas = input['Llegadas']
 
@@ -658,11 +671,9 @@ class FaseUnoPricing:
     def generateObjective(self):
         # Funcion costos para k pricing
         self.k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
-        self.f_obj_pr = (1 - γ) * self.Beta + quicksum(self.omega[p,s,t] * self.w[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.r[p] for p in P)
+        self.f_obj_pr = (1 - γ) * self.Beta + quicksum(self.omega[p,s,t] * self.W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P)
         self.model.setObjective(self.f_obj_pr, GRB.MAXIMIZE)
-    
-    #def getNewPattern(self):
-        #return self.model.gettAtr('X', self.model.getVars())
+
 
     def solveModel(self):
         self.model.params.NonConvex = 2
@@ -729,10 +740,12 @@ class FaseUnoPricing:
 # Llegada Protocolo 2 - 5 pacientes - Poisson lamda=5
 # Llegada Protocolo 3 - 5 pacientes - Poisson lamda=5
 
+#iteracion de fase 1
 informacion = {}
 
 # Contruimos la primera columna
-diccionario = {'Llegadas': q, 'Omega': 1, 'Rho': 1, 'Beta': 1}
+diccionario = {'Llegadas': q, 'W': 1, 'R': 1, 'Beta': 1}
+#va a tirar un error, beta es un valor, pero W depende de p s y t
 Fase1Pricing = FaseUnoPricing(diccionario)
 Fase1Pricing.buildModel()
 Fase1Pricing.solveModel()
@@ -746,112 +759,67 @@ Fase1Maestro.solveModel()
 contador_de_columnas += 1
 C = [k for k in range(1, contador_de_columnas + 1)]
 
+
+
+
 while (Fase1Maestro.model.ObjVal != 0 and contador_de_columnas < 1000):
     print('ITERANDO')
     break
 print('LISTOCO')
 
+
+
+#DE FASE 1 DEBE OBTENER UN RHO[CP] Y OMEGA[CSPT] QUE SERÁN TOMADOS PARA EMPEZAR LA ITERACIÓN
+
+
+base_factible = informacion
+
 ###############
 # ITERACIONES #
 ###############
 
+#DEL PROBLEMA:
+
+valor_objetivo_maestro = 0 
+contador_de_columnas = 0
+valor_objetivo_pricing = 0
+
+
 modelImprovable = True
-while (modelImprovable and contador_de_columnas < 1000):
-  
-    last_obj_master = actual_obj_master
-    
-    #los aux son para agrega nuevas columnas
-    aux_omega = {}
-    aux_rho = {}
-    aux_w = {}
-    aux_y = {}
-    aux_r= {}
-    aux_x= {}
-    #Optimizamos el master con valores de entrada (fase I)
+while modelImprovable == True: 
       
-    master_solution = MasterProblem({"columnas": columnas, "omega_dado": omega_dado, "rho_dado": rho_dado, "w_dados": w_dados, "r_dados": r_dados, "r_prima_dados": r_prima_dados})
+    master_solution = MasterProblem(informacion)
     master_solution.buildModel()
     master_solution.model.optimize()
 
     #Actualizamos resultado
-    actual_obj_master = master_solution.model.objVal
-    #print("RESULTADO MASTER:", actual_obj_master)
+    valor_objetivo_maestro = master_solution.model.objVal
     
-    master_solution.model.printAttr('X')
-    print("RESULTADOS PI")
-    print(master_solution.model.getVars())
-    rest = master_solution.model.getConstrs()
-    beta_dado, W_dados, R_dados = {}, {}, {}
+    #requerimos los beta, W y R (duales del maestro):
+    duales = {}
+    master_solution.entregarDuales()
 
-    ##generando variables duales y asignandoles los nombres correspondientes
-    for r in rest:
-        if r.constrName == "beta":
-            beta_dado = r.Pi
-        elif r.constrName[0] == "W":
-           W_dados[r.constrName] = r.Pi
-        elif r.constrName[0] == "R":
-            R_dados[r.constrName] = r.Pi  
-
-    # Una vez resuelto el Master, usamos estos datos como input para el pricing, para resolver este
+    # Una vez resuelto el Master, usamos estos datos como input para el pricing
      
-    pricing_solution = PricingProblem({"beta_dado": beta_dado, "W_dados": W_dados, "R_dados": R_dados})
+    pricing_solution = SubProblem(duales)
 
     pricing_solution.buildModel()
     pricing_solution.model.optimize()
-    lista_variables_pricing = pricing_solution.model.getVars()
 
-    actual_pricing_value = pricing_solution.model.objVal
-    pricing_solution.model.printAttr('X')
-
-    # REVISAR LO DE LOS INDICES
-    for v in lista_variables_pricing: 
-        name = v.varName
-        if name[0] == "w": 
-            w_aux[name] = v.x # Key del dict será "chi_pr[indicex,indicey]"
-        elif name[0] == "omega": 
-            omega_aux[name] = v.x
-        elif name[0] == "rho":
-            rho_aux = v.x
-        elif name[0] == "y": 
-            y_aux = v.x
-        elif name[0] == "r": 
-            r_aux = v.x    
-        elif name[0] == "x": 
-            x_aux = v.x 
+|   #revisamos el valor del pricing
+    valor_objetivo_pricing = pricing_solution.model.objVal
     
-    #if actual_pricing_value > 0:
-    print("Veamos pricing_valur:" + str(actual_pricing_value))
-    if actual_pricing_value < 0:
-        columnas.append(column_to_enter)
-        #print(columnas)
-        omega.append(omega_aux)
-        rho.append(rho_aux)
-        w.append(w_aux)
-        x.append(x_aux)
-        r.append(r_aux)
-        y.append(y_aux)
-    column_to_enter += 1
-    #print("Número de iteraciones" + str(column_to_enter))
-    if column_to_enter == 30:
-        break
+    #si el valor es positivo, aun se puede mejorar
+    # se añade nueva columna
+    if valor_objetivo_pricing>0:
+        modelImprovable = True
+        #conseguimos la columna a ser ingresada
+        informacion = {}
+        pricing_solution.entregarInformacion()
+        
+        contador_de_columnas += 1
+        C = [k for k in range(1, contador_de_columnas + 1)]
 
-# imprimo valores resultantes del master
-#print("Llega hasta iteración: ", column_to_enter - 1)
-
-
-#OTRA FORMA DE HACERLO
-modelImprovable = True
-
-while modelImprovable:
-    # Solved relaxed Master
-    master.solveRelaxedModel()
-    duals = master.getDuals()
-    #duals de nuestro problema serian W, R Y beta
-    # luego se construye el pricing con los valores entregados por el master
-    subproblem = SubProblem(inputDF, rollWidth, duals)
-    subproblem.buildModel()
-    subproblem.solveModel(120, 0.05)
-    # iterar hasta que el resultado del pricing se vuelva negativo
-    modelImprovable = (subproblem.getObjectiveValue()) > 0
-    # Add new generated pattern to master and iterate
-
+    else:
+        modelImprovable = False
+    
