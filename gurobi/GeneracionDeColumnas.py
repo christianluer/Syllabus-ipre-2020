@@ -787,16 +787,16 @@ Fase1Maestro = FaseUnoMasterProblem(informacion)
 Fase1Maestro.buildModel()
 Fase1Maestro.solveModel()
 
-#contador_de_columnas += 1
-#C = [k for k in range(1, contador_de_columnas + 1)]
+contador_de_columnas += 1
+C = [k for k in range(1, contador_de_columnas + 1)]
 
 
 
 
-#while (Fase1Maestro.model.ObjVal != 0 and contador_de_columnas < 1000):
-   # print('ITERANDO')
-    #break
-#print('LISTOCO')
+while (Fase1Maestro.model.ObjVal != 0 and contador_de_columnas < 1000):
+    print('ITERANDO')
+    break
+print('LISTOCO')
 
 
 
