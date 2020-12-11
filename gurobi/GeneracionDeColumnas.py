@@ -792,7 +792,7 @@ informacion = {}
 
 # Contruimos la primera columna
 diccionario = {'Llegadas': q, 'W': W_inicial, 'R': R_incial, 'Beta': 1}
-#va a tirar un error, beta es un valor, pero W depende de p s y t
+
 Fase1Pricing = FaseUnoPricing(diccionario)
 Fase1Pricing.buildModel()
 Fase1Pricing.solveModel()
