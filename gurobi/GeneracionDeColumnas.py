@@ -4,8 +4,6 @@ import gurobipy as gu
 from parametros import *
 
 
-contador_de_columnas = 1
-C = [k for k in range(1, contador_de_columnas + 1)]
 
 ########################
 # DEFINICIÓN DE CLASES #
@@ -474,20 +472,20 @@ class FaseUnoMasterProblem:
 
     def generateConstraints(self):
         # Restricción 1
-        R1 = {}
-        R1 = self.model.addConstr((1 - γ) * quicksum(self.pi[c] + self.a_beta[c] for c in C) == 1, name= "Beta")
+        self.R1 = {}
+        self.R1 = self.model.addConstr((1 - γ) * quicksum(self.pi[c] + self.a_beta[c] for c in C) == 1, name= "Beta")
 
         # Restricción 2
-        R2 = {}
+        self.R2 = {}
         for p in P: 
             for s in S[p]:
                 for t in T:     
-                    R2 = self.model.addConstr(quicksum((self.omega[c,p,s,t] * self.pi[c]) + self.a_omega[c] for c in C) >= self.E_w[p,s,t], name= "Omega")
+                    self.R2 = self.model.addConstr(quicksum((self.omega[c,p,s,t] * self.pi[c]) + self.a_omega[c] for c in C) >= self.E_w[p,s,t], name= "Omega")
 
         # Restricción 3
-        R3 = {}
+        self.R3 = {}
         for p in P: 
-            R3 = self.model.addConstr(quicksum((self.rho[c,p] * self.pi[c]) + self.a_rho[c] for c in C) >= self.E_r[p], name = "Rho")
+            self.R3 = self.model.addConstr(quicksum((self.rho[c,p] * self.pi[c]) + self.a_rho[c] for c in C) >= self.E_r[p], name = "Rho")
 
     def generateObjective(self):
         self.model.setObjective(quicksum(self.a_beta[c] + self.a_omega[c] + self.a_rho[c] for c in C), GRB.MINIMIZE)
@@ -770,6 +768,9 @@ class FaseUnoPricing:
 # Llegada Protocolo 2 - 5 pacientes - Poisson lamda=5
 # Llegada Protocolo 3 - 5 pacientes - Poisson lamda=5
 
+contador_de_columnas = 1
+C = [k for k in range(1, contador_de_columnas + 1)]
+
 
 W_inicial = {}
 
@@ -792,27 +793,45 @@ informacion = {}
 
 # Contruimos la primera columna
 diccionario = {'Llegadas': q, 'W': W_inicial, 'R': R_incial, 'Beta': 1}
+print("PRICING FASE 1, iteración:" + str(contador_de_columnas))
 
 Fase1Pricing = FaseUnoPricing(diccionario)
 Fase1Pricing.buildModel()
 Fase1Pricing.solveModel()
 Fase1Pricing.entregarInformacion()
+objetivo_pricing_fase1 = Fase1Pricing.model.objVal
+
 
 # Inicializamos el Maestro con  la columna generada
+print("MAESTRO FASE 1 iteración:" + str(contador_de_columnas))
 Fase1Maestro = FaseUnoMasterProblem(informacion)
 Fase1Maestro.buildModel()
 Fase1Maestro.solveModel()
-
-contador_de_columnas += 1
-C = [k for k in range(1, contador_de_columnas + 1)]
-
-
+duales = Fase1Maestro.entregarDuales()
+print(duales)
+objetivo_maestro_fase1 = Fase1Maestro.model.objVal
 
 
-while (Fase1Maestro.model.ObjVal != 0 and contador_de_columnas < 1000):
-    print('ITERANDO')
-    break
-print('LISTOCO')
+while (objetivo_maestro_fase1 != 0 and contador_de_columnas < 1000):
+    print("_----------------------------------------------")
+    print("PRICING FASE 1 iteración:" + str(contador_de_columnas))
+    Fase1Pricing = FaseUnoPricing(duales)
+    Fase1Pricing.buildModel()
+    Fase1Pricing.solveModel()
+    Fase1Pricing.entregarInformacion()
+    objetivo_pricing_fase1 = Fase1Pricing.model.objVal
+    contador_de_columnas += 1
+    C = [k for k in range(1, contador_de_columnas + 1)]
+
+
+    print("_----------------------------------------------")
+    print("MAESTRO FASE 1 iteración:" + str(contador_de_columnas))
+    Fase1Maestro = FaseUnoMasterProblem(informacion)
+    Fase1Maestro.buildModel()
+    Fase1Maestro.solveModel()
+    duales = Fase1Maestro.entregarDuales()
+    objetivo_maestro_fase1 = Fase1Maestro.model.objVal  
+
 
 
 
@@ -828,19 +847,20 @@ base_factible = informacion
 #DEL PROBLEMA:
 
 valor_objetivo_maestro = 0 
-contador_de_columnas = 1
+#contador_de_columnas = 1
 valor_objetivo_pricing = 0
-C = [k for k in range(1, contador_de_columnas + 1)]
+#C = [k for k in range(1, contador_de_columnas + 1)]
 
 
 modelImprovable = True
-while modelImprovable == True: 
-    print("MASTER")
+while modelImprovable == True:
+    print("_----------------------------------------------")    
+    print("MASTER, iteracion" + str(contador_de_columnas))
     master_solution = MasterProblem(informacion)
     master_solution.buildModel()
     master_solution.model.optimize()
     print(contador_de_columnas)
-    print("_----------------------------------------------")
+
     #Actualizamos resultado
     valor_objetivo_maestro = master_solution.model.objVal
     
@@ -848,7 +868,8 @@ while modelImprovable == True:
     duales = master_solution.entregarDuales()
 
     # Una vez resuelto el Master, usamos estos datos como input para el pricing
-    print("PRICING")
+    print("_----------------------------------------------")    
+    print("PRICING iteracion" + str(contador_de_columnas))
     pricing_solution = SubProblem(duales)
 
     pricing_solution.buildModel()
@@ -866,7 +887,6 @@ while modelImprovable == True:
     if valor_objetivo_pricing>0:
         modelImprovable = True
         #conseguimos la columna a ser ingresada
-        informacion = {}
         pricing_solution.entregarInformacion()
         
     else:
