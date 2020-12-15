@@ -53,11 +53,11 @@ CD = dict(zip(P,Costos))
 
 # Costo bloque regular
 
-CR = 10000 
+CR = 1000 
 
 # Costo bloque extra
 
-CE = 25000 
+CE = 2000
 
 CM = (CE - CR)/4 # Costo marginal por bloque extra de atención 
 
@@ -94,7 +94,7 @@ BE2 = [k for k in range(1, 13)] # Bloques extra nominales
 # Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
 
 
-q = {1: 10, 2: 10, 3: 10}
+q = {1: 15, 2: 15, 3: 15}
 #CAMBIO PARA QUE NO SEA ALEATORIO
 
 
