@@ -212,8 +212,8 @@ class SubProblem:
         self.R1 = {}
         # Respetar cantidad de modulos de atencion
         for t in T:
-                self.R1[t] = self.model.addConstr(quicksum(self.x[p,T[t-K_ps[p][s]-1]] * M_sp[p][s] for p in P for s in S[p] if t >= K_ps[p][s])\
-                    + quicksum(self.w[p,s,t] * M_sp[p][s] for p in P for s in S[p] if t >= K_ps[p][s])  <= BR + BE, name="Capacidad bloques[%s]" %t)
+                self.R1[t] = self.model.addConstr(quicksum(self.x[p,t-K_ps[p][s]] * M_sp[p][s] for p in P for s in S[p] if t - K_ps[p][s]>= 1)\
+                    + quicksum(self.w[p,s,t] * M_sp[p][s] for p in P for s in S[p])   <= BR + BE, name="Capacidad bloques[%s]" %t)
         
         self.R2 = {}
         # Definifinición de y
@@ -221,13 +221,13 @@ class SubProblem:
             for s in S[p]:
                 for t in T:
                     # Condicion para evitar exponente igual a 0
-                    if t >= K_ps[p][s]:
+                    if t - K_ps[p][s] >= 1 :
 
-                        self.R2[p,s,t] = self.model.addConstr(quicksum(self.y[p,s,t,m] for m in range(1, BR+1)) == self.x[p,T[t - K_ps[p][s] - 1]] + self.w[p,s,t]\
+                        self.R2[p,s,t] = self.model.addConstr(quicksum(self.y[p,s,t,m] for m in range(1, BR+1)) == self.x[p,t - K_ps[p][s]] + self.w[p,s,t]\
 
                         , name="Definicion y [%s, %s, %s]"%(p,s,t))
-                    else: 
-                        self.R2[p,s,t] = self.model.addConstr( self.w[p,s,t]==0)
+                    #else: 
+                        #self.R2[p,s,t] = self.model.addConstr( self.w[p,s,t]==0)
 
         self.R3 = {}
         # Conservacion de flujo de pacientes
@@ -242,9 +242,9 @@ class SubProblem:
                 for t in T:
                     for m in range(1, BR+1):
                         # Condición: termino en mismo día
-                        if m + M_sp[p][s] - 2 <= BR + BE:
+                        if m + M_sp[p][s] - 1 <= BR + BE:
 
-                            self.R4[p,s,t,m] = self.model.addConstr(self.y[p,s,t,m] == self.u[p,s,t,M[m + M_sp[p][s] - 2]],
+                            self.R4[p,s,t,m] = self.model.addConstr(self.y[p,s,t,m] == self.u[p,s,t,m + M_sp[p][s] -1],
                                 name="Definicion u [%s, %s, %s, %s]"%(p,s,t,m))
 
         self.R5 = {}
@@ -253,7 +253,7 @@ class SubProblem:
             for m in range(1, BR+1):
                 self.R5[m,t] =   self.model.addConstr(( quicksum(self.y[p,s,t,m] + 
 
-                            quicksum(self.y[p,s,t, m - M_sp[p][s]] for m in M if  m - M_sp[p][s] >= 1)\
+                            quicksum(self.y[p,s,t, m - M_sp[p][s]] for m in range(1, BR+1) if  m - M_sp[p][s] >= 1)\
 
                             for p in P for s in S[p]) <= NS), name="Capacidad sillas")
        
@@ -272,11 +272,11 @@ class SubProblem:
             for s in S[p]:
                 for t in T:
                     # Condicion para evitar exponente igual a 0
-                    if t + 7 >= K_ps[p][s]:
+                    if t + 7 >= K_ps[p][s] +1 :
                         if t+7 < len(T):
 
                             self.R7[p,s,t] = self.model.addConstr(self.w_prima[p,s,t] == 
-                                self.w[p,s,T[t-K_ps[p][s]+7]] + self.x[p,T[t+7]],
+                                self.w[p,s,t+7] + self.x[p,t-K_ps[p][s]+7],
                                         name="Definición w'")
 
         self.R8 = {}
@@ -293,13 +293,12 @@ class SubProblem:
                         # Condición de avance de sesiones
                         if t + 1 >= K_ps[p][s]:
 
-                            self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t] == self.w[p,s,t] - γ * (self.w[p,s,T[t+7]] 
-                                + self.x[p,T[t+7]]), name="Definicion omega")
-                        else: 
-                            self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t]==0)
-                    else: 
+                            self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t] == self.w[p,s,t] - γ * (self.w_prima[p,s,t]), name="Definicion omega")
+                        #else: 
+                            #self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t]==0)
+                    #else: 
 
-                        self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t]==0)       
+                        #elf.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t]==0)       
         
         self.R20 = {}
         # Definición de rho
@@ -598,8 +597,8 @@ class FaseUnoPricing:
         self.R1 = {}
         # Respetar cantidad de modulos de atencion
         for t in T:
-                self.R1[t] = self.model.addConstr(quicksum(self.x[p,T[t-K_ps[p][s]-1]] * M_sp[p][s] for p in P for s in S[p] if t >= K_ps[p][s])\
-                    + quicksum(self.w[p,s,t] * M_sp[p][s] for p in P for s in S[p] if t >= K_ps[p][s])  <= BR + BE, name="Capacidad bloques[%s]" %t)
+                self.R1[t] = self.model.addConstr(quicksum(self.x[p,t-K_ps[p][s]] * M_sp[p][s] for p in P for s in S[p] if t- K_ps[p][s] >= 1)\
+                    + quicksum(self.w[p,s,t] * M_sp[p][s] for p in P for s in S[p])  <= BR + BE, name="Capacidad bloques[%s]" %t)
         
         self.R2 = {}
         # Definifinición de y
@@ -607,13 +606,13 @@ class FaseUnoPricing:
             for s in S[p]:
                 for t in T:
                     # Condicion para evitar exponente igual a 0
-                    if t >= K_ps[p][s]:
+                    if t - K_ps[p][s]>= 1 :
 
-                        self.R2[p,s,t] = self.model.addConstr(quicksum(self.y[p,s,t,m] for m in range(1, BR+1)) == self.x[p,T[t - K_ps[p][s] - 1]] + self.w[p,s,t]\
+                        self.R2[p,s,t] = self.model.addConstr(quicksum(self.y[p,s,t,m] for m in range(1, BR+1)) == self.x[p,t - K_ps[p][s]] + self.w[p,s,t]\
 
                         , name="Definicion y [%s, %s, %s]"%(p,s,t))
-                    else: 
-                        self.R2[p,s,t] = self.model.addConstr( self.w[p,s,t]==0)
+                    #else: 
+                        #self.R2[p,s,t] = self.model.addConstr( self.w[p,s,t]==0)
 
         self.R3 = {}
         # Conservacion de flujo de pacientes
@@ -628,9 +627,9 @@ class FaseUnoPricing:
                 for t in T:
                     for m in range(1, BR+1):
                         # Condición: termino en mismo día
-                        if m + M_sp[p][s] - 2 <= BR + BE:
+                        if m + M_sp[p][s] - 1 <= BR + BE:
 
-                            self.R4[p,s,t,m] = self.model.addConstr(self.y[p,s,t,m] == self.u[p,s,t,M[m + M_sp[p][s] - 2]],
+                            self.R4[p,s,t,m] = self.model.addConstr(self.y[p,s,t,m] == self.u[p,s,t,m + M_sp[p][s] - 1],
                                 name="Definicion u [%s, %s, %s, %s]"%(p,s,t,m))
 
         self.R5 = {}
@@ -639,7 +638,7 @@ class FaseUnoPricing:
             for m in range(1, BR+1):
                 self.R5[m,t] =   self.model.addConstr(( quicksum(self.y[p,s,t,m] + 
 
-                            quicksum(self.y[p,s,t, m - M_sp[p][s]] for m in M if  m - M_sp[p][s] >= 1)\
+                            quicksum(self.y[p,s,t, m - M_sp[p][s]] for m in range(1, BR+1) if  m - M_sp[p][s] >= 1)\
 
                             for p in P for s in S[p]) <= NS), name="Capacidad sillas")
        
@@ -658,11 +657,11 @@ class FaseUnoPricing:
             for s in S[p]:
                 for t in T:
                     # Condicion para evitar exponente igual a 0
-                    if t + 7 >= K_ps[p][s]:
+                    if t + 7 >= K_ps[p][s] +1:
                         if t+7 < len(T):
 
                             self.R7[p,s,t] = self.model.addConstr(self.w_prima[p,s,t] == 
-                                self.w[p,s,T[t-K_ps[p][s]+7]] + self.x[p,T[t+7]],
+                                self.w[p,s,t+7] + self.x[p,t-K_ps[p][s]+7],
                                         name="Definición w'")
 
         self.R8 = {}
@@ -679,8 +678,8 @@ class FaseUnoPricing:
                         # Condición de avance de sesiones
                         if t + 1 >= K_ps[p][s]:
 
-                            self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t] == self.w[p,s,t] - γ * (self.w[p,s,T[t+7]] 
-                                + self.x[p,T[t+7]]), name="Definicion omega")
+                            self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t] == self.w[p,s,t] -γ * (self.w_prima[p,s,t]), name="Definicion omega")
+                                
                         else: 
                             self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t]==0)
                     else: 
