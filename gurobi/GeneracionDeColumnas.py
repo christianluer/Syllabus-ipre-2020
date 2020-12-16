@@ -215,17 +215,20 @@ class SubProblem:
                 self.R1[t] = self.model.addConstr(quicksum(self.x[p,T[t-K_ps[p][s]-1]] * M_sp[p][s] for p in P for s in S[p] if t >= K_ps[p][s])\
                     + quicksum(self.w[p,s,t] * M_sp[p][s] for p in P for s in S[p])  <= BR + BE, name="Capacidad bloques[%s]" %t)
         
+        
         self.R2 = {}
         # Definifinición de y
         for p in P:
             for s in S[p]:
-                for t in T:
-                    # Condicion para evitar exponente igual a 0
+                for t in range(1, 7):
+                #for t in T:
+                # Condicion para evitar exponente igual a 0
                     if t >= K_ps[p][s]:
-
                         self.R2[p,s,t] = self.model.addConstr(quicksum(self.y[p,s,t,m] for m in range(1, BR+1)) == self.x[p,T[t - K_ps[p][s] - 1]] + self.w[p,s,t]\
-                        , name="Definicion y [%s, %s, %s]"%(p,s,t))
-                   
+                            , name="Definicion y [%s, %s, %s]"%(p,s,t))
+                    #else: 
+                        #self.R2[p,s,t] = self.model.addConstr( self.w[p,s,t]==0)
+
         self.R3 = {}
         # Conservacion de flujo de pacientes
         for p in P:
@@ -236,17 +239,19 @@ class SubProblem:
         # Definicion de u, con y
         for p in P:
             for s in S[p]:
-                for t in T:
+                for t in range(1, 7):
+                #for t in T:
                     for m in range(1, BR+1):
                         # Condición: termino en mismo día
-                        if m + M_sp[p][s] - 2 <= BR + BE:
+                        if m + M_sp[p][s] - 2  <= BR + BE:
 
                             self.R4[p,s,t,m] = self.model.addConstr(self.y[p,s,t,m] == self.u[p,s,t,M[m + M_sp[p][s] - 2]],
                                 name="Definicion u [%s, %s, %s, %s]"%(p,s,t,m))
 
         self.R5 = {}
         # Acotar a número de sillas disponibles
-        for t in T:
+        #for t in T:
+        for t in range(1, 7):
             for m in range(1, BR+1):
                 self.R5[m,t] =   self.model.addConstr(( quicksum(self.y[p,s,t,m] + 
 
@@ -256,7 +261,8 @@ class SubProblem:
        
         self.R6 = {}
         # Acotar a número de enfermeras
-        for t in T:
+        #for t in T:
+        for t in range(1, 7):
             for m in M:
 
                 self.R6[m,t] = self.model.addConstr((quicksum(self.y[p,s,t,m] + self.u[p,s,t,m] for p in P for s in S[p]) <= NE), 
@@ -595,19 +601,19 @@ class FaseUnoPricing:
         for t in T:
                 self.R1[t] = self.model.addConstr(quicksum(self.x[p,T[t-K_ps[p][s]-1]] * M_sp[p][s] for p in P for s in S[p] if t >= K_ps[p][s])\
                     + quicksum(self.w[p,s,t] * M_sp[p][s] for p in P for s in S[p])  <= BR + BE, name="Capacidad bloques[%s]" %t)
-
-
+        
         self.R2 = {}
         # Definifinición de y
         for p in P:
             for s in S[p]:
-                for t in T:
+                #for t in T:
+                for t in range(1, 7):
                     # Condicion para evitar exponente igual a 0
                     if t >= K_ps[p][s]:
+
                         self.R2[p,s,t] = self.model.addConstr(quicksum(self.y[p,s,t,m] for m in range(1, BR+1)) == self.x[p,T[t - K_ps[p][s] - 1]] + self.w[p,s,t]\
                             , name="Definicion y [%s, %s, %s]"%(p,s,t))
-
-    
+                    
 
         self.R3 = {}
         # Conservacion de flujo de pacientes
@@ -619,7 +625,8 @@ class FaseUnoPricing:
         # Definicion de u, con y
         for p in P:
             for s in S[p]:
-                for t in T:
+                #for t in T:
+                for t in range(1, 7):
                     for m in range(1, BR+1):
                         # Condición: termino en mismo día
                         if m + M_sp[p][s] - 2 <= BR + BE:
@@ -629,18 +636,19 @@ class FaseUnoPricing:
 
         self.R5 = {}
         # Acotar a número de sillas disponibles
-        for t in T:
+        #for t in T:
+        for t in range(1, 7):
             for m in range(1, BR+1):
                 self.R5[m,t] =   self.model.addConstr(( quicksum(self.y[p,s,t,m] + 
 
-                            quicksum(self.y[p,s,t, m - M_sp[p][s]] for m in M if  m - M_sp[p][s] >= 1)\
+                            quicksum(self.y[p,s,t, m - M_sp[p][s]] for m in range(1, BR+1) if  m - M_sp[p][s] >= 1)\
 
                             for p in P for s in S[p]) <= NS), name="Capacidad sillas")
        
         self.R6 = {}
         # Acotar a número de enfermeras
-        for t in T:
-
+        #for t in T:
+        for t in range(1, 7):
             for m in M:
 
                 self.R6[m,t] = self.model.addConstr((quicksum(self.y[p,s,t,m] + self.u[p,s,t,m] for p in P for s in S[p]) <= NE), 
