@@ -33,7 +33,7 @@ M = [k for k in range(1,41)]
 
 #Días
 
-T = [int(k) for k in range(1, 30)]
+T = [int(k) for k in range(1, 60)]
 
 ##############
 # PARÁMETROS #
@@ -46,7 +46,7 @@ T = [int(k) for k in range(1, 30)]
 
 # Costos por protocolo
 
-Costos = [10000000,10000000,10000000]
+Costos = [1000000,1000000,1000000]
 
 CD = dict(zip(P,Costos)) 
 # Asocia los costos cada protocolo con su costo de derivación
@@ -91,10 +91,9 @@ BR2 = 40 # Bloques regulares nominales
 
 BE2 = [k for k in range(1, 13)] # Bloques extra nominales
 
-# Variable aleatoria que indica numero de pacientes con protocolo p que llegan en la semana
+# Variable  que indica numero de pacientes con protocolo p que llegan en la semana
 
-
-q = {1: 15, 2: 15, 3: 15}
+q = {1: 10, 2: 10, 3: 10 }
 #CAMBIO PARA QUE NO SEA ALEATORIO
 
 
@@ -122,4 +121,4 @@ NS = 5
 
 # Lp: maximo de días que puede esperar un paciente del protocolo p para empezar su tratamiento
 
-Lp = {1: 10, 2: 10, 3: 10}
+Lp = {1: 12, 2: 10, 3: 13}
