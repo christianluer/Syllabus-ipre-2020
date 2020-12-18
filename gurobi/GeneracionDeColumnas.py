@@ -3,8 +3,6 @@ import numpy as np
 import gurobipy as gu
 from parametros import *
 
-
-
 ########################
 # DEFINICIÓN DE CLASES #
 ########################
@@ -65,12 +63,12 @@ class MasterProblem:
         for p in P:
             for s in S[p]:
                 for t in T:
-                    self.E_w[p,s,t] = quicksum(self.w[c,p,s,t] for c in C) / len(C)
+                    self.E_w[p,s,t] = 0
        
         # esperanza de r
         self.E_r = {}
         for p in P: 
-            self.E_r[p] = quicksum(self.r[c,p] for c in C) / len(C)
+            self.E_r[p] = q[p]
 
     def buildModel(self):
         self.generateVariables()
@@ -119,8 +117,8 @@ class MasterProblem:
         for p in P:
             R_dados[p] = self.R3.Pi
 
-        duales = {'Beta': beta_dado, 'W' : W_dados, 'R': R_dados}
-        return(duales)
+        self.duales = {'Beta': beta_dado, 'W' : W_dados, 'R': R_dados}
+        return(self.duales)
 
     def solveModel(self):
         self.model.optimize()
@@ -375,9 +373,11 @@ class SubProblem:
     def solveModel(self):
         self.model.optimize()
 
+
 ##########
 # FASE 1 #
 ##########
+
 
 class FaseUnoMasterProblem:
     def __init__(self, input):
@@ -423,11 +423,6 @@ class FaseUnoMasterProblem:
             for p in P:
                 self.z[c,p] = input[c]['z'][p]
             
-            for p in P:
-                for s in S[p]:
-                    for t in T:
-                        for m in M:
-                            self.u[c,p,s,t,m] = input[c]['u'][p,s,t,m]
             
             self.k_as[c] = input[c]['k_as']
 
@@ -447,16 +442,17 @@ class FaseUnoMasterProblem:
         # VARIABLES ARTIFICIALES #
     
         self.a_beta = {}
-        for c in C:
-            self.a_beta[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_beta[%s]"%(c))
+        self.a_beta= self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_beta")
 
         self.a_omega = {}
-        for c in C:
-            self.a_omega[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_omega[%s]"%(c))
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    self.a_omega[p,s,t] = self.model.addVar(lb=0,  vtype=GRB.CONTINUOUS, name="a_omega[%s,%s,%s]"%(p,s,t))
 
         self.a_rho = {}
-        for c in C:
-            self.a_rho[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_rho[%s]"%(c))
+        for p in P:
+            self.a_rho[p] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_rho[%s]"%(p))
 
         # ESPERANZAS #
         # w
@@ -464,32 +460,32 @@ class FaseUnoMasterProblem:
         for p in P:
             for s in S[p]:
                 for t in T:
-                    self.E_w[p,s,t] = quicksum(self.w[c,p,s,t] for c in C) / contador_de_columnas
+                    self.E_w[p,s,t] = 0
         # r
         self.E_r = {}
         for p in P: 
-            self.E_r[p] = quicksum(self.r[c,p] for c in C) / contador_de_columnas
+            self.E_r[p] = q[p]
 
 
     def generateConstraints(self):
         # Restricción 1
         self.R1 = {}
-        self.R1 = self.model.addConstr((1 - γ) * quicksum(self.pi[c] + self.a_beta[c] for c in C) == 1, name= "Beta")
+        self.R1 = self.model.addConstr((1 - γ) * quicksum(self.pi[c]  for c in C) + self.a_beta == 1, name= "Beta")
 
         # Restricción 2
         self.R2 = {}
         for p in P: 
             for s in S[p]:
                 for t in T:     
-                    self.R2 = self.model.addConstr(quicksum((self.omega[c,p,s,t] * self.pi[c]) + self.a_omega[c] for c in C) >= self.E_w[p,s,t], name= "Omega")
+                    self.R2 = self.model.addConstr(quicksum((self.omega[c,p,s,t] * self.pi[c])  for c in C) + self.a_omega[p,s,t]>= self.E_w[p,s,t], name= "Omega")
 
         # Restricción 3
         self.R3 = {}
         for p in P: 
-            self.R3 = self.model.addConstr(quicksum((self.rho[c,p] * self.pi[c]) + self.a_rho[c] for c in C) >= self.E_r[p], name = "Rho")
+            self.R3 = self.model.addConstr(quicksum((self.rho[c,p] * self.pi[c])  for c in C) + self.a_rho[p] >= self.E_r[p], name = "Rho")
 
     def generateObjective(self):
-        self.model.setObjective(quicksum(self.a_beta[c] + self.a_omega[c] + self.a_rho[c] for c in C), GRB.MINIMIZE)
+        self.model.setObjective(quicksum(self.a_beta + self.a_omega[p,s,t] + self.a_rho[p] for p in P for s in S[p] for t in T), GRB.MINIMIZE)
 
     def solveModel(self):
         self.model.optimize()
@@ -508,8 +504,8 @@ class FaseUnoMasterProblem:
         for p in P:
             R_dados[p] = self.R3.Pi
 
-        duales = {'Beta': beta_dado, 'W' : W_dados, 'R': R_dados}
-
+        self.duales = {'Beta': beta_dado, 'W' : W_dados, 'R': R_dados}
+        return(self.duales)
 
 class FaseUnoPricing:
     def __init__(self, input):
@@ -517,7 +513,6 @@ class FaseUnoPricing:
         self.W = input["W"] # obtenido a partir del dual del maestro
         self.R = input["R"] # obtenido a partir del dual del maestro
         self.Beta = input["Beta"] # obtenido a partir del dual del maestro
-        self.llegadas = input['Llegadas']
 
     def buildModel(self):
         self.generateVariables()
@@ -544,12 +539,12 @@ class FaseUnoPricing:
         # Cantidad de pacientes en la semana del protocolo p
         for p in P:
             #self.r[p] = self.model.addVar(lb=0,  vtype=GRB.INTEGER, name="r[%s]"%(p))
-            self.r[p] = self.llegadas[p]
+            self.r[p] = q[p]
 
         self.r_prima = {}
         for p in P:
             #self.r_prima[p] = self.model.addVar(lb=0,  vtype=GRB.INTEGER, name="r_prima[%s]"%(p))
-            self.r_prima[p] = self.llegadas[p]
+            self.r_prima[p] = q[p]
 
         # VARIABLES DE ACCIÓN #
         self.x = {}
@@ -600,7 +595,7 @@ class FaseUnoPricing:
         # Respetar cantidad de modulos de atencion
         for t in T:
                 self.R1[t] = self.model.addConstr(quicksum(self.x[p,T[t-K_ps[p][s]-1]] * M_sp[p][s] for p in P for s in S[p] if t >= K_ps[p][s])\
-                    + quicksum(self.w[p,s,t] * M_sp[p][s] for p in P for s in S[p])  <= BR + BE, name="Capacidad bloques[%s]" %t)
+                    + quicksum(self.w[p,s,t] * M_sp[p][s] for p in P for s in S[p])  <= (BR + BE), name="Capacidad bloques[%s]" %t)
         
         self.R2 = {}
         # Definifinición de y
@@ -761,92 +756,94 @@ class FaseUnoPricing:
 
 
 
-##########################
-# GENERACIÓN DE COLUMNAS #
-##########################
 
-# Definamos el siguiente caso:
-# Llegada Protocolo 1 - 5 pacientes - Poisson lamda=5
-# Llegada Protocolo 2 - 5 pacientes - Poisson lamda=5
-# Llegada Protocolo 3 - 5 pacientes - Poisson lamda=5
 
 contador_de_columnas = 1
 C = [k for k in range(1, contador_de_columnas + 1)]
 
 
-W_inicial = {}
+r_inicial = {}
 
 for p in P:
 
+    r_inicial[p] = q[p]
+
+w_inicial = {}
+
+for p in P:
     for s in S[p]:
-
         for t in T:
+            w_inicial[p,s,t] = 0
 
-            W_inicial[p,s,t] = 1
 
-R_incial = {}
+
+x_inicial = {}
+
+for p in P:
+    for t in T:
+        x_inicial[p,t] = 0
+
+z_inicial = {}
+for p in P:
+
+    z_inicial[p] = q[p]
+
+r_prima_inicial = {}
 
 for p in P:
 
-    R_incial[p] = 1
+    r_prima_inicial[p] = q[p]
 
-#iteracion de fase 1
-informacion = {}
+w_prima_inicial = {}
+for p in P:
+    for s in S[p]:
+        for t in T:
+            # Condicion para evitar exponente igual a 0
+                if t + 7 >= K_ps[p][s] +1 :
+                    if t+7 < len(T):
 
-# Contruimos la primera columna
-diccionario = {'Llegadas': q, 'W': W_inicial, 'R': R_incial, 'Beta': 1}
-print("PRICING FASE 1, iteración:" + str(contador_de_columnas))
-
-Fase1Pricing = FaseUnoPricing(diccionario)
-Fase1Pricing.buildModel()
-Fase1Pricing.solveModel()
-Fase1Pricing.entregarInformacion()
-objetivo_pricing_fase1 = Fase1Pricing.model.objVal
-
-
-# Inicializamos el Maestro con  la columna generada
-print("MAESTRO FASE 1 iteración:" + str(contador_de_columnas))
-Fase1Maestro = FaseUnoMasterProblem(informacion)
-Fase1Maestro.buildModel()
-Fase1Maestro.solveModel()
-duales = Fase1Maestro.entregarDuales()
-print(duales)
-objetivo_maestro_fase1 = Fase1Maestro.model.objVal
-
-
-while (objetivo_maestro_fase1 != 0 and contador_de_columnas < 1000):
-    print("_----------------------------------------------")
-    print("PRICING FASE 1 iteración:" + str(contador_de_columnas))
-    Fase1Pricing = FaseUnoPricing(duales)
-    Fase1Pricing.buildModel()
-    Fase1Pricing.solveModel()
-    Fase1Pricing.entregarInformacion()
-    objetivo_pricing_fase1 = Fase1Pricing.model.objVal
-    contador_de_columnas += 1
-    C = [k for k in range(1, contador_de_columnas + 1)]
-
-
-    print("_----------------------------------------------")
-    print("MAESTRO FASE 1 iteración:" + str(contador_de_columnas))
-    Fase1Maestro = FaseUnoMasterProblem(informacion)
-    Fase1Maestro.buildModel()
-    Fase1Maestro.solveModel()
-    duales = Fase1Maestro.entregarDuales()
-    objetivo_maestro_fase1 = Fase1Maestro.model.objVal  
+                            w_prima_inicial[p,s,t] = w_inicial[p,s,t+7] + x_inicial[p,t-K_ps[p][s]+7]
+                    else:
+                        w_prima_inicial[p,s,t] = 0
+                else:
+                    w_prima_inicial[p,s,t] = 0
 
 
 
+omega_inicial  = {}
+for p in P:
+    for s in S[p]:
+        for t in T:
+            omega_inicial[p,s,t] = 0 
 
-#DE FASE 1 DEBE OBTENER UN RHO[CP] Y OMEGA[CSPT] QUE SERÁN TOMADOS PARA EMPEZAR LA ITERACIÓN
+rho_inicial = {}
+for p in P:
+    rho_inicial[p] = r_inicial[p] - (γ *r_prima_inicial[p])
 
+k_as_inicial = quicksum(CD[p] * z_inicial[p] for p in P) 
 
-base_factible = informacion
+informacion = {1: {'Omega': omega_inicial, 'Rho': rho_inicial, 'w': w_inicial, 'w_prima': w_prima_inicial, 'r': r_inicial, 'r_prima': r_prima_inicial, 'z': z_inicial,  'k_as': k_as_inicial}} 
 
-###############
-# ITERACIONES #
-###############
+objetivo_maestro_fase1 = 100000
 
-#DEL PROBLEMA:
+while objetivo_maestro_fase1 != 0:
+	print("------------------------------------")
+	print("MAESTRO FASE 1 iteración:" + str(contador_de_columnas))
+	Fase1Maestro = FaseUnoMasterProblem(informacion)
+	Fase1Maestro.buildModel()
+	Fase1Maestro.solveModel()
+	duales = Fase1Maestro.entregarDuales()
+	objetivo_maestro_fase1 = Fase1Maestro.model.objVal
+	contador_de_columnas += 1
+	C = [k for k in range(1, contador_de_columnas + 1)]
+
+	print("------------------------------------")
+	print("PRICING FASE 1 iteración:" + str(contador_de_columnas))
+	Fase1Pricing = FaseUnoPricing(duales)
+	Fase1Pricing.buildModel()
+	Fase1Pricing.solveModel()
+	Fase1Pricing.entregarInformacion()
+	objetivo_pricing_fase1 = Fase1Pricing.model.objVal
 
 valor_objetivo_maestro = 0 
 #contador_de_columnas = 1
@@ -893,4 +890,5 @@ while modelImprovable == True:
         
     else:
         modelImprovable = False
+    
     
