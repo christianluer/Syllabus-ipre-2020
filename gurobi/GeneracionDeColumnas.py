@@ -310,7 +310,7 @@ class SubProblem:
 
         #DEF
         self.Rx = {}
-        self.Rx = self.model.addConstr(self.k_as == quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR))
+        self.Rx = self.model.addConstr(self.k_as == quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in range(1, 7) for l in range(1, BE + 1))*(CE-CR))
         
     def generateObjective(self):
        
@@ -691,7 +691,7 @@ class FaseUnoPricing:
             self.R20[p] = self.model.addConstr((self.rho[p] == self.r[p] - (γ *self.r_prima[p])), name="Definicion rho")
 
         self.Rx = {}
-        self.Rx = self.model.addConstr(self.k_as == quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR))
+        self.Rx = self.model.addConstr(self.k_as == quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in range(1, 7) for l in range(1, BE + 1))*(CE-CR))
         
     def generateObjective(self):
         # Funcion costos para k pricing
