@@ -3,10 +3,6 @@ import numpy as np
 import gurobipy as gu
 from parametros import *
 
-
-contador_de_columnas = 1
-C = [k for k in range(1, contador_de_columnas + 1)]
-
 ########################
 # DEFINICIÓN DE CLASES #
 ########################
@@ -14,7 +10,7 @@ C = [k for k in range(1, contador_de_columnas + 1)]
 # PROBLEMA MAESTRO #
 
 class MasterProblem:
-    def __init__(self, input, k):
+    def __init__(self, input):
 
         self.model = gu.Model('MasterProblem')
         #input proveniente del pricing
@@ -29,7 +25,7 @@ class MasterProblem:
         self.k_as= {}
         
         #añadir la nueva columna
-        for c in C:
+        for c in self.columnas:
 
             for p in P:
                     for s in S[p]:
@@ -60,19 +56,19 @@ class MasterProblem:
                     for t in T:
                         self.w_prima[c,p,s,t] = input[c]['w_prima'][p,s,t]           
             
-            self.k_as[c] = k[c]
+            self.k_as[c] = input[c]['k_as']
 
         #definicion de la esperanza de w
         self.E_w = {}
         for p in P:
             for s in S[p]:
                 for t in T:
-                    self.E_w[p,s,t] = quicksum(self.w[c,p,s,t] for c in C) / len(C)
+                    self.E_w[p,s,t] = 0
        
         # esperanza de r
         self.E_r = {}
         for p in P: 
-            self.E_r[p] = quicksum(self.r[c,p] for c in C) / len(C)
+            self.E_r[p] = q[p]
 
     def buildModel(self):
         self.generateVariables()
@@ -83,7 +79,7 @@ class MasterProblem:
     def generateVariables(self):
 
         self.pi = {}
-        for c in C: 
+        for c in self.columnas: 
             self.pi[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="pi[%s]"%(c))
 
     def generateConstraints(self):
@@ -105,7 +101,7 @@ class MasterProblem:
             self.R3 = self.model.addConstr(sum((self.rho[c,p] * self.pi[c]) for c in C) >= self.E_r[p], name = "R")
 
     def generateObjective(self):
-        self.model.setObjective(quicksum((self.k_as[c] * self.pi[c]) for c in C), GRB.MINIMIZE)
+        self.model.setObjective(quicksum((self.k_as[c] * self.pi[c]) for c in self.columnas), GRB.MINIMIZE)
 
     def entregarDuales(self): 
         beta_dado = {}
@@ -121,8 +117,8 @@ class MasterProblem:
         for p in P:
             R_dados[p] = self.R3.Pi
 
-        duales = {'Beta': beta_dado, 'W' : W_dados, 'R': R_dados}
-        return(duales)
+        self.duales = {'Beta': beta_dado, 'W' : W_dados, 'R': R_dados}
+        return(self.duales)
 
     def solveModel(self):
         self.model.optimize()
@@ -206,6 +202,8 @@ class SubProblem:
         for p in P:
             self.rho[p] = self.model.addVar(lb=0,   vtype=GRB.CONTINUOUS, name="rho[%s]"%(p))
         
+        self.k_as = {}
+        self.k_as = self.model.addVar(lb = 0, vtype=GRB.CONTINUOUS, name="k")
 
     def generateConstraints(self):
         
@@ -213,21 +211,21 @@ class SubProblem:
         # Respetar cantidad de modulos de atencion
         for t in T:
                 self.R1[t] = self.model.addConstr(quicksum(self.x[p,T[t-K_ps[p][s]-1]] * M_sp[p][s] for p in P for s in S[p] if t >= K_ps[p][s])\
-                    + quicksum(self.w[p,s,t] * M_sp[p][s] for p in P for s in S[p] if t >= K_ps[p][s])  <= BR + BE, name="Capacidad bloques[%s]" %t)
+                    + quicksum(self.w[p,s,t] * M_sp[p][s] for p in P for s in S[p])  <= BR + BE, name="Capacidad bloques[%s]" %t)
+        
         
         self.R2 = {}
         # Definifinición de y
         for p in P:
             for s in S[p]:
-                for t in T:
-                    # Condicion para evitar exponente igual a 0
+                for t in range(1, 7):
+                #for t in T:
+                # Condicion para evitar exponente igual a 0
                     if t >= K_ps[p][s]:
-
                         self.R2[p,s,t] = self.model.addConstr(quicksum(self.y[p,s,t,m] for m in range(1, BR+1)) == self.x[p,T[t - K_ps[p][s] - 1]] + self.w[p,s,t]\
-
-                        , name="Definicion y [%s, %s, %s]"%(p,s,t))
-                    else: 
-                        self.R2[p,s,t] = self.model.addConstr( self.w[p,s,t]==0)
+                            , name="Definicion y [%s, %s, %s]"%(p,s,t))
+                    #else: 
+                        #self.R2[p,s,t] = self.model.addConstr( self.w[p,s,t]==0)
 
         self.R3 = {}
         # Conservacion de flujo de pacientes
@@ -239,17 +237,19 @@ class SubProblem:
         # Definicion de u, con y
         for p in P:
             for s in S[p]:
-                for t in T:
+                for t in range(1, 7):
+                #for t in T:
                     for m in range(1, BR+1):
                         # Condición: termino en mismo día
-                        if m + M_sp[p][s] - 2 <= BR + BE:
+                        if m + M_sp[p][s] - 2  <= BR + BE:
 
                             self.R4[p,s,t,m] = self.model.addConstr(self.y[p,s,t,m] == self.u[p,s,t,M[m + M_sp[p][s] - 2]],
                                 name="Definicion u [%s, %s, %s, %s]"%(p,s,t,m))
 
         self.R5 = {}
         # Acotar a número de sillas disponibles
-        for t in T:
+        #for t in T:
+        for t in range(1, 7):
             for m in range(1, BR+1):
                 self.R5[m,t] =   self.model.addConstr(( quicksum(self.y[p,s,t,m] + 
 
@@ -259,8 +259,8 @@ class SubProblem:
        
         self.R6 = {}
         # Acotar a número de enfermeras
-        for t in T:
-
+        #for t in T:
+        for t in range(1, 7):
             for m in M:
 
                 self.R6[m,t] = self.model.addConstr((quicksum(self.y[p,s,t,m] + self.u[p,s,t,m] for p in P for s in S[p]) <= NE), 
@@ -272,11 +272,11 @@ class SubProblem:
             for s in S[p]:
                 for t in T:
                     # Condicion para evitar exponente igual a 0
-                    if t + 7 >= K_ps[p][s]:
+                    if t + 7 >= K_ps[p][s] +1 :
                         if t+7 < len(T):
 
                             self.R7[p,s,t] = self.model.addConstr(self.w_prima[p,s,t] == 
-                                self.w[p,s,T[t-K_ps[p][s]+7]] + self.x[p,T[t+7]],
+                                self.w[p,s,t+7] + self.x[p,t-K_ps[p][s]+7],
                                         name="Definición w'")
 
         self.R8 = {}
@@ -293,23 +293,27 @@ class SubProblem:
                         # Condición de avance de sesiones
                         if t + 1 >= K_ps[p][s]:
 
-                            self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t] == self.w[p,s,t] - γ * (self.w[p,s,T[t+7]] 
-                                + self.x[p,T[t+7]]), name="Definicion omega")
-                        else: 
-                            self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t]==0)
-                    else: 
+                            self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t] == self.w[p,s,t] - γ * (self.w_prima[p,s,t]), name="Definicion omega")
+                        #else: 
+                            #self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t]==0)
+                    #else: 
 
-                        self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t]==0)       
+                        #elf.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t]==0)       
         
         self.R20 = {}
         # Definición de rho
         for p in P:
 
             self.R20[p] = self.model.addConstr((self.rho[p] == self.r[p] - (γ *self.r_prima[p])), name="Definicion rho")
+        
 
+
+        #DEF
+        self.Rx = {}
+        self.Rx = self.model.addConstr(self.k_as == quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in range(1, 7) for l in range(1, BE + 1))*(CE-CR))
         
     def generateObjective(self):
-        self.k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
+       
         self.f_obj_pr = (1 - γ) * self.Beta + quicksum(self.omega[p,s,t] * self.W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P)- self.k_as
         self.model.setObjective(self.f_obj_pr, GRB.MAXIMIZE)
     
@@ -340,11 +344,11 @@ class SubProblem:
         # r
         info_r = {}
         for p in P:
-            info_r[p] = self.r[p]
+            info_r[p] = self.r[p].x
         # r_prima
         info_r_prima = {}
         for p in P:
-            info_r_prima[p] = self.r_prima[p]
+            info_r_prima[p] = self.r_prima[p].x
         # z
         info_z =  {}
         for p in P:
@@ -356,17 +360,24 @@ class SubProblem:
                 for t in T:
                     for m in M:
                         info_u[p,s,t,m] = self.u[p,s,t,m].x
-       
-        columna_actual = {'Rho': info_rho, 'Omega': info_omega, 'w': info_w, 'w_prima': info_w_prima, 'r': info_r, 'r_prima': info_r_prima, 'z': info_z, 'u': info_u, 'k_as': self.k_as}
-        informacion[contador_de_columnas] = columna_actual 
+
+        info_k_as = {}
+        info_k_as= self.k_as.x
+
+        columna_actual = {'Rho': info_rho, 'Omega': info_omega, 'w': info_w, 'w_prima': info_w_prima, 'r': info_r, 'r_prima': info_r_prima, 'z': info_z, 'u': info_u, 'k_as': info_k_as}
+        for c in C:
+            informacion[c] = columna_actual 
+
 
 
     def solveModel(self):
         self.model.optimize()
 
+
 ##########
 # FASE 1 #
 ##########
+
 
 class FaseUnoMasterProblem:
     def __init__(self, input):
@@ -412,11 +423,6 @@ class FaseUnoMasterProblem:
             for p in P:
                 self.z[c,p] = input[c]['z'][p]
             
-            for p in P:
-                for s in S[p]:
-                    for t in T:
-                        for m in M:
-                            self.u[c,p,s,t,m] = input[c]['u'][p,s,t,m]
             
             self.k_as[c] = input[c]['k_as']
 
@@ -436,16 +442,17 @@ class FaseUnoMasterProblem:
         # VARIABLES ARTIFICIALES #
     
         self.a_beta = {}
-        for c in C:
-            self.a_beta[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_beta[%s]"%(c))
+        self.a_beta= self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_beta")
 
         self.a_omega = {}
-        for c in C:
-            self.a_omega[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_omega[%s]"%(c))
+        for p in P:
+            for s in S[p]:
+                for t in T:
+                    self.a_omega[p,s,t] = self.model.addVar(lb=0,  vtype=GRB.CONTINUOUS, name="a_omega[%s,%s,%s]"%(p,s,t))
 
         self.a_rho = {}
-        for c in C:
-            self.a_rho[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_rho[%s]"%(c))
+        for p in P:
+            self.a_rho[p] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_rho[%s]"%(p))
 
         # ESPERANZAS #
         # w
@@ -453,32 +460,32 @@ class FaseUnoMasterProblem:
         for p in P:
             for s in S[p]:
                 for t in T:
-                    self.E_w[p,s,t] = quicksum(self.w[c,p,s,t] for c in C) / contador_de_columnas
+                    self.E_w[p,s,t] = 0
         # r
         self.E_r = {}
         for p in P: 
-            self.E_r[p] = quicksum(self.r[c,p] for c in C) / contador_de_columnas
+            self.E_r[p] = q[p]
 
 
     def generateConstraints(self):
         # Restricción 1
-        R1 = {}
-        R1 = self.model.addConstr((1 - γ) * quicksum(self.pi[c] + self.a_beta[c] for c in C) == 1, name= "Beta")
+        self.R1 = {}
+        self.R1 = self.model.addConstr((1 - γ) * quicksum(self.pi[c]  for c in C) + self.a_beta == 1, name= "Beta")
 
         # Restricción 2
-        R2 = {}
+        self.R2 = {}
         for p in P: 
             for s in S[p]:
                 for t in T:     
-                    R2 = self.model.addConstr(quicksum((self.omega[c,p,s,t] * self.pi[c]) + self.a_omega[c] for c in C) >= self.E_w[p,s,t], name= "Omega")
+                    self.R2 = self.model.addConstr(quicksum((self.omega[c,p,s,t] * self.pi[c])  for c in C) + self.a_omega[p,s,t]>= self.E_w[p,s,t], name= "Omega")
 
         # Restricción 3
-        R3 = {}
+        self.R3 = {}
         for p in P: 
-            R3 = self.model.addConstr(quicksum((self.rho[c,p] * self.pi[c]) + self.a_rho[c] for c in C) >= self.E_r[p], name = "Rho")
+            self.R3 = self.model.addConstr(quicksum((self.rho[c,p] * self.pi[c])  for c in C) + self.a_rho[p] >= self.E_r[p], name = "Rho")
 
     def generateObjective(self):
-        self.model.setObjective(quicksum(self.a_beta[c] + self.a_omega[c] + self.a_rho[c] for c in C), GRB.MINIMIZE)
+        self.model.setObjective(quicksum(self.a_beta + self.a_omega[p,s,t] + self.a_rho[p] for p in P for s in S[p] for t in T), GRB.MINIMIZE)
 
     def solveModel(self):
         self.model.optimize()
@@ -497,8 +504,8 @@ class FaseUnoMasterProblem:
         for p in P:
             R_dados[p] = self.R3.Pi
 
-        duales = {'Beta': beta_dado, 'W' : W_dados, 'R': R_dados}
-
+        self.duales = {'Beta': beta_dado, 'W' : W_dados, 'R': R_dados}
+        return(self.duales)
 
 class FaseUnoPricing:
     def __init__(self, input):
@@ -506,7 +513,6 @@ class FaseUnoPricing:
         self.W = input["W"] # obtenido a partir del dual del maestro
         self.R = input["R"] # obtenido a partir del dual del maestro
         self.Beta = input["Beta"] # obtenido a partir del dual del maestro
-        self.llegadas = input['Llegadas']
 
     def buildModel(self):
         self.generateVariables()
@@ -533,12 +539,12 @@ class FaseUnoPricing:
         # Cantidad de pacientes en la semana del protocolo p
         for p in P:
             #self.r[p] = self.model.addVar(lb=0,  vtype=GRB.INTEGER, name="r[%s]"%(p))
-            self.r[p] = self.llegadas[p]
+            self.r[p] = q[p]
 
         self.r_prima = {}
         for p in P:
             #self.r_prima[p] = self.model.addVar(lb=0,  vtype=GRB.INTEGER, name="r_prima[%s]"%(p))
-            self.r_prima[p] = self.llegadas[p]
+            self.r_prima[p] = q[p]
 
         # VARIABLES DE ACCIÓN #
         self.x = {}
@@ -578,7 +584,10 @@ class FaseUnoPricing:
         self.rho = {}
         for p in P:
             self.rho[p] = self.model.addVar(lb=0,   vtype=GRB.CONTINUOUS, name="rho[%s]"%(p))
-        
+
+        self.k_as = {}
+        self.k_as = self.model.addVar(lb = 0, vtype=GRB.CONTINUOUS, name="k")
+
 
     def generateConstraints(self):
         
@@ -586,21 +595,20 @@ class FaseUnoPricing:
         # Respetar cantidad de modulos de atencion
         for t in T:
                 self.R1[t] = self.model.addConstr(quicksum(self.x[p,T[t-K_ps[p][s]-1]] * M_sp[p][s] for p in P for s in S[p] if t >= K_ps[p][s])\
-                    + quicksum(self.w[p,s,t] * M_sp[p][s] for p in P for s in S[p] if t >= K_ps[p][s])  <= BR + BE, name="Capacidad bloques[%s]" %t)
+                    + quicksum(self.w[p,s,t] * M_sp[p][s] for p in P for s in S[p])  <= (BR + BE), name="Capacidad bloques[%s]" %t)
         
         self.R2 = {}
         # Definifinición de y
         for p in P:
             for s in S[p]:
-                for t in T:
+                #for t in T:
+                for t in range(1, 7):
                     # Condicion para evitar exponente igual a 0
                     if t >= K_ps[p][s]:
 
                         self.R2[p,s,t] = self.model.addConstr(quicksum(self.y[p,s,t,m] for m in range(1, BR+1)) == self.x[p,T[t - K_ps[p][s] - 1]] + self.w[p,s,t]\
-
-                        , name="Definicion y [%s, %s, %s]"%(p,s,t))
-                    else: 
-                        self.R2[p,s,t] = self.model.addConstr( self.w[p,s,t]==0)
+                            , name="Definicion y [%s, %s, %s]"%(p,s,t))
+                    
 
         self.R3 = {}
         # Conservacion de flujo de pacientes
@@ -612,7 +620,8 @@ class FaseUnoPricing:
         # Definicion de u, con y
         for p in P:
             for s in S[p]:
-                for t in T:
+                #for t in T:
+                for t in range(1, 7):
                     for m in range(1, BR+1):
                         # Condición: termino en mismo día
                         if m + M_sp[p][s] - 2 <= BR + BE:
@@ -622,18 +631,19 @@ class FaseUnoPricing:
 
         self.R5 = {}
         # Acotar a número de sillas disponibles
-        for t in T:
+        #for t in T:
+        for t in range(1, 7):
             for m in range(1, BR+1):
                 self.R5[m,t] =   self.model.addConstr(( quicksum(self.y[p,s,t,m] + 
 
-                            quicksum(self.y[p,s,t, m - M_sp[p][s]] for m in M if  m - M_sp[p][s] >= 1)\
+                            quicksum(self.y[p,s,t, m - M_sp[p][s]] for m in range(1, BR+1) if  m - M_sp[p][s] >= 1)\
 
                             for p in P for s in S[p]) <= NS), name="Capacidad sillas")
        
         self.R6 = {}
         # Acotar a número de enfermeras
-        for t in T:
-
+        #for t in T:
+        for t in range(1, 7):
             for m in M:
 
                 self.R6[m,t] = self.model.addConstr((quicksum(self.y[p,s,t,m] + self.u[p,s,t,m] for p in P for s in S[p]) <= NE), 
@@ -645,11 +655,11 @@ class FaseUnoPricing:
             for s in S[p]:
                 for t in T:
                     # Condicion para evitar exponente igual a 0
-                    if t + 7 >= K_ps[p][s]:
+                    if t + 7 >= K_ps[p][s] +1:
                         if t+7 < len(T):
 
                             self.R7[p,s,t] = self.model.addConstr(self.w_prima[p,s,t] == 
-                                self.w[p,s,T[t-K_ps[p][s]+7]] + self.x[p,T[t+7]],
+                                self.w[p,s,t+7] + self.x[p,t-K_ps[p][s]+7],
                                         name="Definición w'")
 
         self.R8 = {}
@@ -666,8 +676,8 @@ class FaseUnoPricing:
                         # Condición de avance de sesiones
                         if t + 1 >= K_ps[p][s]:
 
-                            self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t] == self.w[p,s,t] - γ * (self.w[p,s,T[t+7]] 
-                                + self.x[p,T[t+7]]), name="Definicion omega")
+                            self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t] == self.w[p,s,t] -γ * (self.w_prima[p,s,t]), name="Definicion omega")
+                                
                         else: 
                             self.R19[p,s,t] = self.model.addConstr(self.omega[p,s,t]==0)
                     else: 
@@ -680,10 +690,12 @@ class FaseUnoPricing:
 
             self.R20[p] = self.model.addConstr((self.rho[p] == self.r[p] - (γ *self.r_prima[p])), name="Definicion rho")
 
+        self.Rx = {}
+        self.Rx = self.model.addConstr(self.k_as == quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in range(1, 7) for l in range(1, BE + 1))*(CE-CR))
         
     def generateObjective(self):
         # Funcion costos para k pricing
-        self.k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
+        #self.k_as = quicksum(CD[p] * self.z[p] for p in P) + quicksum(self.u[p,s,t,BR + l] * l  for p in P for s in S[p] for t in T for l in range(1, BE + 1))*(CE-CR)
         self.f_obj_pr = (1 - γ) * self.Beta + quicksum(self.omega[p,s,t] * self.W[p,s,t] for p in P for s in S[p] for t in T) + quicksum(self.rho[p] * self.R[p] for p in P)
         self.model.setObjective(self.f_obj_pr, GRB.MAXIMIZE)
 
@@ -736,95 +748,117 @@ class FaseUnoPricing:
                 for t in T:
                     for m in M:
                         info_u[p,s,t,m] = self.u[p,s,t,m].x
-        # k_as
-        #info_k_as = k_as
+        info_k_as = {}
+        info_k_as= self.k_as.x
 
-        columna_actual = {'Rho': info_rho, 'Omega': info_omega, 'w': info_w, 'w_prima': info_w_prima, 'r': info_r, 'r_prima': info_r_prima, 'z': info_z, 'u': info_u, 'k_as': self.k_as}
+        columna_actual = {'Rho': info_rho, 'Omega': info_omega, 'w': info_w, 'w_prima': info_w_prima, 'r': info_r, 'r_prima': info_r_prima, 'z': info_z, 'u': info_u, 'k_as': info_k_as}
         informacion[contador_de_columnas] = columna_actual 
 
 
 
-##########################
-# GENERACIÓN DE COLUMNAS #
-##########################
-
-# Definamos el siguiente caso:
-# Llegada Protocolo 1 - 5 pacientes - Poisson lamda=5
-# Llegada Protocolo 2 - 5 pacientes - Poisson lamda=5
-# Llegada Protocolo 3 - 5 pacientes - Poisson lamda=5
 
 
-W_inicial = {}
-
-for p in P:
-
-    for s in S[p]:
-
-        for t in T:
-
-            W_inicial[p,s,t] = 1
-
-R_incial = {}
-
-for p in P:
-
-    R_incial[p] = 1
-
-#iteracion de fase 1
-informacion = {}
-
-# Contruimos la primera columna
-diccionario = {'Llegadas': q, 'W': W_inicial, 'R': R_incial, 'Beta': 1}
-#va a tirar un error, beta es un valor, pero W depende de p s y t
-Fase1Pricing = FaseUnoPricing(diccionario)
-Fase1Pricing.buildModel()
-Fase1Pricing.solveModel()
-Fase1Pricing.entregarInformacion()
-
-
-# Inicializamos el Maestro con  la columna generada
-Fase1Maestro = FaseUnoMasterProblem(informacion)
-Fase1Maestro.buildModel()
-Fase1Maestro.solveModel()
-
-contador_de_columnas += 1
+contador_de_columnas = 1
 C = [k for k in range(1, contador_de_columnas + 1)]
 
 
+r_inicial = {}
+
+for p in P:
+
+    r_inicial[p] = q[p]
+
+w_inicial = {}
+
+for p in P:
+    for s in S[p]:
+        for t in T:
+            w_inicial[p,s,t] = 0
 
 
-while (Fase1Maestro.model.ObjVal != 0 and contador_de_columnas < 1000):
-    print('ITERANDO')
-    break
-print('LISTOCO')
+
+x_inicial = {}
+
+for p in P:
+    for t in T:
+        x_inicial[p,t] = 0
+
+z_inicial = {}
+for p in P:
+
+    z_inicial[p] = q[p]
+
+r_prima_inicial = {}
+
+for p in P:
+
+    r_prima_inicial[p] = q[p]
+
+w_prima_inicial = {}
+for p in P:
+    for s in S[p]:
+        for t in T:
+            # Condicion para evitar exponente igual a 0
+                if t + 7 >= K_ps[p][s] +1 :
+                    if t+7 < len(T):
+
+                            w_prima_inicial[p,s,t] = w_inicial[p,s,t+7] + x_inicial[p,t-K_ps[p][s]+7]
+                    else:
+                        w_prima_inicial[p,s,t] = 0
+                else:
+                    w_prima_inicial[p,s,t] = 0
 
 
 
-#DE FASE 1 DEBE OBTENER UN RHO[CP] Y OMEGA[CSPT] QUE SERÁN TOMADOS PARA EMPEZAR LA ITERACIÓN
+omega_inicial  = {}
+for p in P:
+    for s in S[p]:
+        for t in T:
+            omega_inicial[p,s,t] = 0 
 
+rho_inicial = {}
+for p in P:
+    rho_inicial[p] = r_inicial[p] - (γ *r_prima_inicial[p])
 
-base_factible = informacion
+k_as_inicial = quicksum(CD[p] * z_inicial[p] for p in P) 
 
-###############
-# ITERACIONES #
-###############
+informacion = {1: {'Omega': omega_inicial, 'Rho': rho_inicial, 'w': w_inicial, 'w_prima': w_prima_inicial, 'r': r_inicial, 'r_prima': r_prima_inicial, 'z': z_inicial,  'k_as': k_as_inicial}} 
 
-#DEL PROBLEMA:
+objetivo_maestro_fase1 = 100000
+
+while objetivo_maestro_fase1 != 0:
+	print("------------------------------------")
+	print("MAESTRO FASE 1 iteración:" + str(contador_de_columnas))
+	Fase1Maestro = FaseUnoMasterProblem(informacion)
+	Fase1Maestro.buildModel()
+	Fase1Maestro.solveModel()
+	duales = Fase1Maestro.entregarDuales()
+	objetivo_maestro_fase1 = Fase1Maestro.model.objVal
+	contador_de_columnas += 1
+	C = [k for k in range(1, contador_de_columnas + 1)]
+
+	print("------------------------------------")
+	print("PRICING FASE 1 iteración:" + str(contador_de_columnas))
+	Fase1Pricing = FaseUnoPricing(duales)
+	Fase1Pricing.buildModel()
+	Fase1Pricing.solveModel()
+	Fase1Pricing.entregarInformacion()
+	objetivo_pricing_fase1 = Fase1Pricing.model.objVal
 
 valor_objetivo_maestro = 0 
-contador_de_columnas = 1
+#contador_de_columnas = 1
 valor_objetivo_pricing = 0
+#C = [k for k in range(1, contador_de_columnas + 1)]
 
 
-#el k_as no esta entrando a informacion
-# por ahora para que corra el codigo
-k_as = {1: 1}
 modelImprovable = True
-while modelImprovable == True: 
-      
-    master_solution = MasterProblem(informacion, k_as)
+while modelImprovable == True:
+    print("_----------------------------------------------")    
+    print("MASTER, iteracion" + str(contador_de_columnas))
+    master_solution = MasterProblem(informacion)
     master_solution.buildModel()
     master_solution.model.optimize()
+    print(contador_de_columnas)
 
     #Actualizamos resultado
     valor_objetivo_maestro = master_solution.model.objVal
@@ -833,26 +867,28 @@ while modelImprovable == True:
     duales = master_solution.entregarDuales()
 
     # Una vez resuelto el Master, usamos estos datos como input para el pricing
-     
+    print("_----------------------------------------------")    
+    print("PRICING iteracion" + str(contador_de_columnas))
     pricing_solution = SubProblem(duales)
 
     pricing_solution.buildModel()
     pricing_solution.model.optimize()
+    pricing_solution.model.printAttr("X")
 
     #revisamos el valor del pricing
     valor_objetivo_pricing = pricing_solution.model.objVal
     
     #si el valor es positivo, aun se puede mejorar
     # se añade nueva columna
+    contador_de_columnas += 1
+    C = [k for k in range(1, contador_de_columnas + 1)]
+
     if valor_objetivo_pricing>0:
         modelImprovable = True
         #conseguimos la columna a ser ingresada
-        informacion = {}
         pricing_solution.entregarInformacion()
         
-        contador_de_columnas += 1
-        C = [k for k in range(1, contador_de_columnas + 1)]
-
     else:
         modelImprovable = False
+    
     
