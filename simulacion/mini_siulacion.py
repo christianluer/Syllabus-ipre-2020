@@ -7,7 +7,7 @@ from calendario_antiguo import calendario
 cuenta_paciente = 1
 tasa_llegada_dia = 6
 tipos_de_cancer = [1, 2, 3, 4]  # pueden ser nombres tambien
-asientos = 4
+asientos = 14
 modulos_atencion = 4 # tomara 4 modulos de 15 minutos el atender a un paciente
 dias = ["lunes", "martes", "miercoles", "jueves","viernes", "sabado"]
 numero_enfermeras_minimo = 6

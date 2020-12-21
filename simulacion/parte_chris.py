@@ -4,7 +4,7 @@ from collections import deque, defaultdict
 from calendario_antiguo import calendario
 import csv
 import pandas as pd
-
+import xlsxwriter
 
 class Calendario:
     def __init__(self, calendario, enfermeras, capacidad):
@@ -56,7 +56,7 @@ class Calendario:
             contador += 1
             print(string)
     def asignar_paciente(self, semana, dia, modulo_incial, asiento, paciente):
-        if self.contar_enfermeras_modulo(dia,semana,modulo_incial) < self.total_enfermeras and modulo_incial+ paciente.duracion_sesion_actual < 41 and paciente.numero_sesion <= len(paciente.protocolo[0]):
+        if self.contar_enfermeras_modulo(dia,semana,modulo_incial) < self.total_enfermeras and modulo_incial+ paciente.duracion_sesion_actual < 41 and paciente.numero_sesion <= len(paciente.protocolo[0]) and self.calendario[semana][dias[dia]][asiento][modulo_incial].ocupado == False:
             for i in range(modulo_incial, modulo_incial + paciente.duracion_sesion_actual + 1):
                 self.calendario[semana][dias[dia]][asiento][i].paciente = paciente.numero_paciente
                 self.calendario[semana][dias[dia]][asiento][i].ocupado = True
@@ -66,7 +66,10 @@ class Calendario:
             paciente.ultima_sesion = dia
             paciente.numero_de_sesiones += 1
             paciente.agendado_en.append([semana, dia])
-            paciente.historial.append([paciente.id, dia, semana, modulo_incial, asiento, paciente.tipo, paciente.numero_sesion])
+            paciente.historial.append(
+                [paciente.id, dia, semana, modulo_incial, asiento, paciente.tipo, paciente.numero_sesion])
+            #for j in range(paciente.duracion_sesion_actual):
+                #paciente.historial.append([paciente.id, dia, semana, modulo_incial + j, asiento, paciente.tipo, paciente.numero_sesion])
 
     def contar_horas_extra_dia(self, dia, semana):
         cuenta = 0
@@ -78,16 +81,13 @@ class Calendario:
         cuenta = cuenta/4
         return cuenta
     def modulos_ocupados_por_sillas(self, dia, semana):
-        cuenta = list()
-        num = 1
+        porcentaje = 0
         for i in self.calendario[semana][dia]:
-            porcentaje = 0
             for j in self.calendario[semana][dia][i]:
                 if self.calendario[semana][dia][i][j].ocupado == True:
                     porcentaje += 1
-            porcentaje = porcentaje/40
-            cuenta.append([num, porcentaje])
-            num += 1
+        porcentaje = porcentaje/(40*14)
+        cuenta = porcentaje
         return cuenta
 
     def generar_excel_indicador(self):
@@ -103,6 +103,19 @@ class Calendario:
             indicador_writer.writerow([f"numero semana", f"numero dia", f"horas extras"])
             for ñ in indicador_horas_por_dia:
                 indicador_writer.writerow([f"semana: {ñ[0]}", f"dia: {ñ[1]}", f"horas extras: {ñ[2]}"])
+    def simulation_indicator(self):
+        indicador_horas_por_dia = list()
+        cuenta = 1
+        for i in self.calendario:
+            for j in self.calendario[i]:
+                hras_extra = self.contar_horas_extra_dia(j, i)
+                modulos = self.modulos_ocupados_por_sillas(j,i)
+                indicador_horas_por_dia.append([i, j, hras_extra, modulos])
+        nuevo_df = pd.DataFrame(columns=["Dia", "Semana", "horas extras", "Ocupacion Sillas %"])
+        for k in indicador_horas_por_dia:
+            nuevo_df = nuevo_df.append(
+                {"Dia": dias.index(k[1]) + 6 * k[0], "Semana": k[0], "Horas Extras": k[2], "Ocupacion Sillas %": k[3]}, ignore_index=True)
+        return nuevo_df
 
 
     def generar_excel_indicador_dia(self, week, day):
@@ -135,7 +148,7 @@ class Calendario:
             lista.append(self.contar_enfermeras_modulo(dia, semana, contador))
             df.loc[contador] = lista
             contador += 1
-        print(df.head(35))
+        return df
 
 class Paciente:
 
@@ -229,7 +242,7 @@ def llegada_pacientes_semana(pacientes_nuevos):
     pacientes = np.random.poisson(tasa_llegada_dia, 7)
     for i in pacientes:
         for j in range(i):
-            tipo = random.choice(tipos_de_cancer)
+            tipo = random.choice(tipos_de_cancer_barbara) ### VOlver a 4 en caso necesario
             pacientes_nuevos.pacientes.append(Paciente(tipo))
 
 
@@ -337,6 +350,7 @@ def simulacion(espera, pacientes_agendados, pacientes_rechazados, calendario, cu
             agendar_prox_semana(a[0], a[1], pacientes_agendados, pacientes_rechazados, terminados)
         agendados = []
         print(f"semana {i}")
+
     #calendario.generar_excel_indicador()
     #calendario.generar_excel_indicador_dia(0,"lunes")
     #calendario.generar_excel_indicador_dia(0, "martes")
@@ -357,16 +371,17 @@ if __name__ == "__main__":
 
     ##### IMPUTS ######
     cuenta_paciente = 1
-    tasa_llegada_dia = 12
+    tasa_llegada_dia = 4
     tipos_de_cancer = [1, 2, 3, 4]
+    tipos_de_cancer_barbara=[1,2,3]
     dias = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"]
-    protocolo_1 = [[1, 3, 5, 6, 4], [5, 5, 5, 6, 4]] ## primer valor de la lista lista[0][0], es el
+    protocolo_4 = [[1, 3, 5, 6, 4], [5, 5, 5, 6, 4]] ## primer valor de la lista lista[0][0], es el
     protocolo_2 = [[1, 3, 3, 2, 2, 4], [4, 5, 5, 5, 4, 4]]
     protocolo_3 = [[0, 4, 5, 4, 4, 3, 2, 1], [4, 4, 5, 4, 4, 4, 4, 4]]
-    protocolo_4 = [[2, 5, 4, 1, 1, 1, 1], [3, 5, 4, 1, 1, 1, 1]]
-    enfermeras = 10
+    protocolo_1 = [[2, 5, 4, 1, 1, 1, 1, 4], [3, 5, 4, 1, 1, 1, 1, 9]]
+    enfermeras = 5
     capacidad_enfermeras_regular = 3
-    semanas_simulacion = 5
+    semanas_simulacion = 11
     #### FIN IMPUTS #####
     pacientes_general = set()
     todos_los_pacientes = Lista_pacientes()
@@ -385,27 +400,53 @@ if __name__ == "__main__":
     rechazados2 = set(rechazados.pacientes)
     for i in rechazados2:
         for j in i.historial:
-            big_df = big_df.append({"ID": j[0], "Dia": j[1], "Semana": j[2], "Modulo": j[3], "Asiento": j[4], "Protocolo": j[5], "Sesion": j[6], "estado tratamiento": "derivado"}, ignore_index=True)
+            big_df = big_df.append({"ID": j[0], "Dia": j[1] + 6*j[2], "Semana": j[2], "Modulo": j[3], "Asiento": j[4], "Protocolo": j[5], "Sesion": j[6], "estado tratamiento": "derivado"}, ignore_index=True)
     terminados2 = set(terminados.pacientes)
     for i in terminados2:
         for j in i.historial:
-            big_df = big_df.append({"ID": j[0], "Dia": j[1], "Semana": j[2], "Modulo": j[3], "Asiento": j[4], "Protocolo": j[5], "Sesion": j[6], "estado tratamiento": "finalizado"}, ignore_index=True)
+            big_df = big_df.append({"ID": j[0], "Dia": j[1] + 6*j[2], "Semana": j[2], "Modulo": j[3], "Asiento": j[4], "Protocolo": j[5], "Sesion": j[6], "estado tratamiento": "finalizado"}, ignore_index=True)
     for i in range(0,6):
         pacientes = set(agendados.prox_semana[i])
         for k in pacientes:
             for j in k.historial:
                 big_df = big_df.append(
-                    {"ID": j[0], "Dia": j[1], "Semana": j[2], "Modulo": j[3], "Asiento": j[4], "Protocolo": j[5],
+                    {"ID": j[0], "Dia": j[1] + 6*j[2], "Semana": j[2], "Modulo": j[3], "Asiento": j[4], "Protocolo": j[5],
                     "Sesion": j[6], "estado tratamiento": "En tratamiento"}, ignore_index=True)
     for l in espera.pacientes:
         for j in l.historial:
             big_df = big_df.append(
-                {"ID": j[0], "Dia": j[1], "Semana": j[2], "Modulo": j[3], "Asiento": j[4], "Protocolo": j[5],
+                {"ID": j[0], "Dia": j[1] + 6*j[2], "Semana": j[2], "Modulo": j[3], "Asiento": j[4], "Protocolo": j[5],
                  "Sesion": j[6], "estado tratamiento": "primera semana"}, ignore_index=True)
     print(big_df.head(100))
-    xlwriter= pd.ExcelWriter("resumen_pacientes.xlsx")
-    big_df.to_excel(xlwriter, sheet_name="reumen pacientes", index=False)
+    xlwriter= pd.ExcelWriter("resumen_pacientes_barbara.xlsx")
+    ## parte a eliminaar
+    big_df=big_df[big_df['estado tratamiento'].isin(["finalizado", "En tratamiento"])]
+    ##
+    big_df.to_excel(xlwriter, sheet_name="resumen pacientes", index=False)
     xlwriter.close()
+
+    writer = pd.ExcelWriter('simulacion_barbara.xlsx', engine='xlsxwriter')
+    workbook = writer.book
+    worksheet = workbook.add_worksheet('Calendario')
+    writer.sheets['Calendario'] = worksheet
+    row = 0
+    horizonte = pd.DataFrame(columns=["semana", "dia"])
+    dia_hori = 0
+    for i in range(semanas_simulacion):
+        for j in range(6):
+            df = nuevo_calendario.to_dataframe(i, j)
+            df.to_excel(writer, sheet_name='Calendario', startrow=row, startcol=0)
+            row += len(df.index) + 3
+            horizonte = horizonte.append({"semana": i, "dia": dia_hori},ignore_index=True)
+            dia_hori +=1
+    horizonte.to_excel(writer, sheet_name="horizonte")
+    big_df_sin_estado = big_df[["ID", "Dia", "Semana", "Modulo", "Asiento", "Protocolo", "Sesion"]]
+    big_df_sin_estado.to_excel(writer, sheet_name="calendario datos")
+    indicator = nuevo_calendario.simulation_indicator()
+    indicator.to_excel(writer, sheet_name="indicadores")
+    writer.close()
+
+
 #### NUEVO DESAFIO ####
 
 
@@ -419,3 +460,10 @@ if __name__ == "__main__":
 ## lo que se vea sea los dias al final de la simulacion, formato igual al del terminal.
 
 ## simular por pacientes
+
+
+### posible error: Tener a una enfermera atendiendo mas pacientes aun que este atendiendo al inicio a un paciente.
+
+
+#### asignacion paciente mejorar
+#### verificar dia tambien con lo de las horas extras
