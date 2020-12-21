@@ -14,7 +14,6 @@ class MasterProblem:
 
         self.model = gu.Model('MasterProblem')
         #input proveniente del pricing
-        #deje solo las que utiliza el maestro
         self.columnas = C
         self.omega = {}
         self.rho = {}
@@ -59,6 +58,7 @@ class MasterProblem:
             self.k_as[c] = input[c]['k_as']
 
         #definicion de la esperanza de w
+        #por ahora = 0 para que corra
         self.E_w = {}
         for p in P:
             for s in S[p]:
@@ -104,6 +104,7 @@ class MasterProblem:
         self.model.setObjective(quicksum((self.k_as[c] * self.pi[c]) for c in self.columnas), GRB.MINIMIZE)
 
     def entregarDuales(self): 
+        #entrega las duales de cada una de las restricciones
         beta_dado = {}
         beta_dado = self.R1.Pi
 
@@ -440,6 +441,7 @@ class FaseUnoMasterProblem:
             self.pi[c] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="pi[%s]"%(c))
         
         # VARIABLES ARTIFICIALES #
+        #SON POR CADA RESTRICCION
     
         self.a_beta = {}
         self.a_beta= self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_beta")
@@ -448,7 +450,7 @@ class FaseUnoMasterProblem:
         for p in P:
             for s in S[p]:
                 for t in T:
-                    self.a_omega[p,s,t] = self.model.addVar(lb=0,  vtype=GRB.CONTINUOUS, name="a_omega[%s,%s,%s]"%(p,s,t))
+                    self.a_omega[p,s,t] = self.model.addVar(lb=0, vtype=GRB.CONTINUOUS, name="a_omega[%s,%s,%s]"%(p,s,t))
 
         self.a_rho = {}
         for p in P:
@@ -485,10 +487,11 @@ class FaseUnoMasterProblem:
             self.R3 = self.model.addConstr(quicksum((self.rho[c,p] * self.pi[c])  for c in C) + self.a_rho[p] >= self.E_r[p], name = "Rho")
 
     def generateObjective(self):
-        self.model.setObjective(quicksum(self.a_beta + self.a_omega[p,s,t] + self.a_rho[p] for p in P for s in S[p] for t in T), GRB.MINIMIZE)
+        self.model.setObjective(self.a_beta+ quicksum(self.a_omega[p,s,t] for p in P for s in S[p] for t in T) +  quicksum(self.a_rho[p] for p in P), GRB.MINIMIZE)
 
     def solveModel(self):
         self.model.optimize()
+        
 
     def entregarDuales(self):
         beta_dado = {}
@@ -519,6 +522,7 @@ class FaseUnoPricing:
         self.generateConstraints()
         self.generateObjective()
         self.model.update()
+        self.model.params.NonConvex = 2
 
     def generateVariables(self):
         # VARIABLES DE ESTADO #
@@ -545,7 +549,6 @@ class FaseUnoPricing:
         for p in P:
             #self.r_prima[p] = self.model.addVar(lb=0,  vtype=GRB.INTEGER, name="r_prima[%s]"%(p))
             self.r_prima[p] = q[p]
-
         # VARIABLES DE ACCIÓN #
         self.x = {}
         #Cantiad de protocolos -p- que inician su tratamiento el dia -t-
@@ -661,6 +664,10 @@ class FaseUnoPricing:
                             self.R7[p,s,t] = self.model.addConstr(self.w_prima[p,s,t] == 
                                 self.w[p,s,t+7] + self.x[p,t-K_ps[p][s]+7],
                                         name="Definición w'")
+                        else: 
+                            self.w_prima[p,s,t] == 0
+                    else: 
+                        self.w_prima[p,s,t] == 0
 
         self.R8 = {}
         # Realización de llegadas - probabilidades de transición
@@ -701,11 +708,8 @@ class FaseUnoPricing:
 
 
     def solveModel(self):
-        self.model.params.NonConvex = 2
         self.model.optimize()
-        #self.model.printAttr("X")
-        #self.model.gettAtr('X', self.model.getVars())
-
+       
     def entregarInformacion(self):
         # Rho
         info_rho = {}
@@ -761,6 +765,8 @@ class FaseUnoPricing:
 contador_de_columnas = 1
 C = [k for k in range(1, contador_de_columnas + 1)]
 
+#PRIMERA COLUMNA INGRESADA
+#CASO POSIBLE: DERIVAR A TODOS
 
 r_inicial = {}
 
@@ -814,7 +820,7 @@ omega_inicial  = {}
 for p in P:
     for s in S[p]:
         for t in T:
-            omega_inicial[p,s,t] = 0 
+            omega_inicial[p,s,t] = 0
 
 rho_inicial = {}
 for p in P:
@@ -826,34 +832,49 @@ informacion = {1: {'Omega': omega_inicial, 'Rho': rho_inicial, 'w': w_inicial, '
 
 objetivo_maestro_fase1 = 100000
 
-while objetivo_maestro_fase1 != 0:
-	print("------------------------------------")
-	print("MAESTRO FASE 1 iteración:" + str(contador_de_columnas))
-	Fase1Maestro = FaseUnoMasterProblem(informacion)
-	Fase1Maestro.buildModel()
-	Fase1Maestro.solveModel()
-	duales = Fase1Maestro.entregarDuales()
-	objetivo_maestro_fase1 = Fase1Maestro.model.objVal
-	contador_de_columnas += 1
-	C = [k for k in range(1, contador_de_columnas + 1)]
 
-	print("------------------------------------")
-	print("PRICING FASE 1 iteración:" + str(contador_de_columnas))
-	Fase1Pricing = FaseUnoPricing(duales)
-	Fase1Pricing.buildModel()
-	Fase1Pricing.solveModel()
-	Fase1Pricing.entregarInformacion()
-	objetivo_pricing_fase1 = Fase1Pricing.model.objVal
+
+
+while objetivo_maestro_fase1 != 0:
+    print("------------------------------------")
+    print("MAESTRO FASE 1 iteración:" + str(contador_de_columnas))
+    #se entrega la informacion de la columan respectiva
+    Fase1Maestro = FaseUnoMasterProblem(informacion)
+    Fase1Maestro.buildModel()
+    Fase1Maestro.solveModel()
+    Fase1Maestro.model.printAttr("X")
+    #se solicita la informacion
+    duales = Fase1Maestro.entregarDuales()
+    
+    objetivo_maestro_fase1 = Fase1Maestro.model.objVal
+
+    #se ingresa el "espacio" para una nueva columna que será llenada con el resutado del pricing
+    contador_de_columnas += 1
+    C = [k for k in range(1, contador_de_columnas + 1)]
+    print("------------------------------------")
+    print("PRICING FASE 1 iteración:" + str(contador_de_columnas))
+    Fase1Pricing = FaseUnoPricing(duales)
+    Fase1Pricing.buildModel()
+    Fase1Pricing.solveModel()
+    #se actualiza la informacion
+    Fase1Pricing.entregarInformacion()
+    objetivo_pricing_fase1 = Fase1Pricing.model.objVal
+
+
+
+
+
+
+
 
 valor_objetivo_maestro = 0 
-#contador_de_columnas = 1
 valor_objetivo_pricing = 0
-#C = [k for k in range(1, contador_de_columnas + 1)]
+
 
 
 modelImprovable = True
 while modelImprovable == True:
-    print("_----------------------------------------------")    
+    print("----------------------------------------------")    
     print("MASTER, iteracion" + str(contador_de_columnas))
     master_solution = MasterProblem(informacion)
     master_solution.buildModel()
