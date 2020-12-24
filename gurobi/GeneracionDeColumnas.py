@@ -57,15 +57,15 @@ class MasterProblem:
             
             self.k_as[c] = input[c]['k_as']
 
-        #definicion de la esperanza de w
-        #por ahora = 0 para que corra
+        # Definicion de la esperanza de w
+        # Por ahora = 0 para que corra
         self.E_w = {}
         for p in P:
             for s in S[p]:
                 for t in T:
                     self.E_w[p,s,t] = 0
        
-        # esperanza de r
+        # Esperanza de r
         self.E_r = {}
         for p in P: 
             self.E_r[p] = q[p]
@@ -927,5 +927,9 @@ for p in P:
     pacientes_llegados += pricing_solution.r[p].x 
 print("Derivación total:", (pacientes_derivados / pacientes_llegados) * 100, "%")
 
-print("2. ")
+# Agregar más métricas de satisfacción
+# Días de espera antes de comenzar el tratamiento
+# Tiempo de ejecución
+# Costo total versus simulación de agendamiento manual
+# print("2. ")
     
