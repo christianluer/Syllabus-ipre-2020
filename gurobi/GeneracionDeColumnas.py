@@ -4,7 +4,7 @@ import gurobipy as gu
 from parametros import *
 
 ########################
-# DEFINICIÓN DE CLASES #
+# DEFINICIÓN DE CLASES #
 ########################
 
 # PROBLEMA MAESTRO #
@@ -57,15 +57,15 @@ class MasterProblem:
             
             self.k_as[c] = input[c]['k_as']
 
-        #definicion de la esperanza de w
-        #por ahora = 0 para que corra
+        # Definicion de la esperanza de w
+        # Por ahora = 0 para que corra
         self.E_w = {}
         for p in P:
             for s in S[p]:
                 for t in T:
                     self.E_w[p,s,t] = 0
        
-        # esperanza de r
+        # Esperanza de r
         self.E_r = {}
         for p in P: 
             self.E_r[p] = q[p]
@@ -759,14 +759,15 @@ class FaseUnoPricing:
         informacion[contador_de_columnas] = columna_actual 
 
 
-
-
+print("------------------------------------")
+print("COMIENZA LA FASE I")
+print("------------------------------------\n")
 
 contador_de_columnas = 1
 C = [k for k in range(1, contador_de_columnas + 1)]
 
-#PRIMERA COLUMNA INGRESADA
-#CASO POSIBLE: DERIVAR A TODOS
+# PRIMERA COLUMNA INGRESADA
+# CASO POSIBLE: DERIVAR A TODOS
 
 r_inicial = {}
 
@@ -814,8 +815,6 @@ for p in P:
                 else:
                     w_prima_inicial[p,s,t] = 0
 
-
-
 omega_inicial  = {}
 for p in P:
     for s in S[p]:
@@ -830,14 +829,12 @@ k_as_inicial = quicksum(CD[p] * z_inicial[p] for p in P)
 
 informacion = {1: {'Omega': omega_inicial, 'Rho': rho_inicial, 'w': w_inicial, 'w_prima': w_prima_inicial, 'r': r_inicial, 'r_prima': r_prima_inicial, 'z': z_inicial,  'k_as': k_as_inicial}} 
 
-objetivo_maestro_fase1 = 100000
-
-
-
+objetivo_maestro_fase1 = 99999999
 
 while objetivo_maestro_fase1 != 0:
     print("------------------------------------")
-    print("MAESTRO FASE 1 iteración:" + str(contador_de_columnas))
+    print("MAESTRO FASE 1 -- ITERACIÓN: " + str(contador_de_columnas - 1))
+    print("------------------------------------")
     #se entrega la informacion de la columan respectiva
     Fase1Maestro = FaseUnoMasterProblem(informacion)
     Fase1Maestro.buildModel()
@@ -852,7 +849,8 @@ while objetivo_maestro_fase1 != 0:
     contador_de_columnas += 1
     C = [k for k in range(1, contador_de_columnas + 1)]
     print("------------------------------------")
-    print("PRICING FASE 1 iteración:" + str(contador_de_columnas))
+    print("PRICING FASE 1 -- ITERACIÓN: " + str(contador_de_columnas - 1))
+    print("------------------------------------")
     Fase1Pricing = FaseUnoPricing(duales)
     Fase1Pricing.buildModel()
     Fase1Pricing.solveModel()
@@ -860,26 +858,25 @@ while objetivo_maestro_fase1 != 0:
     Fase1Pricing.entregarInformacion()
     objetivo_pricing_fase1 = Fase1Pricing.model.objVal
 
+print("------------------------------------")
+print("FIN DE LA FASE I")
+print("------------------------------------\n")
 
-
-
-
-
-
+print("------------------------------------")
+print("INICIO DE LA FASE II")
+print("------------------------------------\n")
 
 valor_objetivo_maestro = 0 
 valor_objetivo_pricing = 0
 
-
-
 modelImprovable = True
 while modelImprovable == True:
-    print("----------------------------------------------")    
-    print("MASTER, iteracion" + str(contador_de_columnas))
+    print("------------------------------------")
+    print("MAESTRO -- ITERACIÓN: " + str(contador_de_columnas - 1))
+    print("------------------------------------")
     master_solution = MasterProblem(informacion)
     master_solution.buildModel()
     master_solution.model.optimize()
-    print(contador_de_columnas)
 
     #Actualizamos resultado
     valor_objetivo_maestro = master_solution.model.objVal
@@ -888,8 +885,9 @@ while modelImprovable == True:
     duales = master_solution.entregarDuales()
 
     # Una vez resuelto el Master, usamos estos datos como input para el pricing
-    print("_----------------------------------------------")    
-    print("PRICING iteracion" + str(contador_de_columnas))
+    print("------------------------------------")
+    print("PRICING -- ITERACIÓN: " + str(contador_de_columnas - 1))
+    print("------------------------------------")
     pricing_solution = SubProblem(duales)
 
     pricing_solution.buildModel()
@@ -911,5 +909,26 @@ while modelImprovable == True:
         
     else:
         modelImprovable = False
-    
-    
+
+print("------------------------------------")
+print("FIN DE LA FASE II")
+print("------------------------------------\n")
+
+print("------------------------------------")
+print("ESTADÍSTICAS")
+print("------------------------------------\n")
+
+print("1. Derivación por protocolo")
+pacientes_llegados = 0
+pacientes_derivados = 0
+for p in P:
+    print("Porcentaje de derivación protocolo", str(p), ":", (pricing_solution.z[p].x / pricing_solution.r[p].x) * 100,"%")
+    pacientes_derivados += pricing_solution.z[p].x 
+    pacientes_llegados += pricing_solution.r[p].x 
+print("Derivación total:", (pacientes_derivados / pacientes_llegados) * 100, "%")
+
+# Agregar más métricas de satisfacción
+# Días de espera antes de comenzar el tratamiento
+# Tiempo de ejecución
+# Costo total versus simulación de agendamiento manual
+# print("2. ")
