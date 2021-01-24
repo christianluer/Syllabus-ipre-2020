@@ -932,3 +932,7 @@ print("Derivación total:", (pacientes_derivados / pacientes_llegados) * 100, "%
 # Tiempo de ejecución
 # Costo total versus simulación de agendamiento manual
 # print("2. ")
+<<<<<<< HEAD
+=======
+    
+>>>>>>> 118b65e2644b3c7e0c1e815127b53b98d68a863f

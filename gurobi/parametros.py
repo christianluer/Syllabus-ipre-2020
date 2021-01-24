@@ -94,7 +94,7 @@ BE2 = [k for k in range(1, 13)] # Bloques extra nominales
 
 # Variable  que indica numero de pacientes con protocolo p que llegan en la semana
 
-q = {1: 10, 2: 10, 3: 10 }
+q = {1: 5, 2: 5, 3: 5}
 
 
 
